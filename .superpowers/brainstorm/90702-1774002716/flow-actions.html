@@ -1,0 +1,91 @@
+<h2>混合架构确认 & 批量操作栏设计</h2>
+<p class="subtitle">第一级页面作为“入口与目标设定”（类似A方案），确认后进入第二级“结果呈现与微调”页面（类似B方案）。
+现在，我们在第二级呈现了长列表。针对这些资产进行的**批量操作（替换、显隐、定位等）**，您希望如何布局动作栏？</p>
+
+<div class="split">
+  <!-- Option 1: Bottom Floating Action Bar -->
+  <div class="mockup" data-choice="bottom_fab" onclick="toggleSelect(this)" style="cursor: pointer; transition: transform 0.2s; border: 2px solid transparent;">
+    <div class="mockup-header" style="justify-content: space-between;">
+      <span>选项 1: 底部悬浮动作栏 (Bottom FAB)</span>
+    </div>
+    <div class="mockup-body" style="background:#f5f5f5; padding: 12px; height: 350px; display:flex; flex-direction:column; gap:8px; position:relative;">
+      <!-- Top fixed filters -->
+      <div style="background:#fff; border:1px solid #ddd; padding:8px; border-radius:4px; display:flex; gap:6px;">
+        <span style="font-size:11px; background:#e5f3ff; color:#0d99ff; padding:2px 6px; border-radius:2px;">过滤器微调区...</span>
+      </div>
+      <!-- List -->
+      <div style="flex:1; background:#fff; border:1px solid #ddd; border-radius:4px; overflow:hidden; padding-bottom:50px;">
+        <div style="padding:8px; font-size:12px; border-bottom:1px solid #eee; display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" checked> <span>• Primary Color Layer 1</span>
+        </div>
+        <div style="padding:8px; font-size:12px; border-bottom:1px solid #eee; display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" checked> <span>• Primary Color Layer 2</span>
+        </div>
+        <div style="padding:8px; font-size:12px; border-bottom:1px solid #eee; display:flex; align-items:center; gap:8px; opacity: 0.5;">
+          <input type="checkbox"> <span>• Non-selected Vector</span>
+        </div>
+      </div>
+      
+      <!-- Bottom FAB -->
+      <div style="position:absolute; bottom:20px; left:50%; transform:translateX(-50%); background:#222; color:#fff; padding:10px 16px; border-radius:30px; display:flex; gap:16px; align-items:center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+        <span style="font-size:12px; border-right:1px solid #555; padding-right:16px;">已选 2 项</span>
+        <span style="font-size:12px; cursor:pointer;" title="定位">🔍 定位</span>
+        <span style="font-size:12px; cursor:pointer;" title="隐藏">👁️ 显隐</span>
+        <span style="font-size:12px; cursor:pointer; color:#0d99ff; font-weight:bold;">✨ 批量替换</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option 2: Inline Contextual Actions -->
+  <div class="mockup" data-choice="inline_actions" onclick="toggleSelect(this)" style="cursor: pointer; transition: transform 0.2s; border: 2px solid transparent;">
+    <div class="mockup-header" style="justify-content: space-between;">
+      <span>选项 2: 顶部定级 + 列表行内触发</span>
+    </div>
+    <div class="mockup-body" style="background:#f5f5f5; padding: 12px; height: 350px; display:flex; flex-direction:column; gap:8px;">
+      <!-- Top fixed actions & filters -->
+      <div style="background:#fff; border:1px solid #ddd; padding:8px; border-radius:4px; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; border-bottom:1px solid #eee; padding-bottom:8px;">
+           <span>已选: 2 项</span>
+           <button style="background:#0d99ff; color:#fff; border:none; padding:4px 8px; border-radius:4px;">批量替换</button>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <span style="font-size:11px; background:#e5f3ff; color:#0d99ff; padding:2px 6px; border-radius:2px;">过滤器...</span>
+        </div>
+      </div>
+      <!-- List -->
+      <div style="flex:1; background:#fff; border:1px solid #ddd; border-radius:4px; overflow:hidden;">
+        <div style="padding:8px; font-size:12px; border-bottom:1px solid #eee; display:flex; align-items:center; justify-content:space-between; background:#e5f3ff;">
+          <div><input type="checkbox" checked> <span>• Layer 1</span></div>
+          <div style="display:flex; gap:8px; font-size:12px;"><span>🔍</span><span>👁️</span></div>
+        </div>
+        <div style="padding:8px; font-size:12px; border-bottom:1px solid #eee; display:flex; align-items:center; justify-content:space-between; background:#e5f3ff;">
+          <div><input type="checkbox" checked> <span>• Layer 2</span></div>
+          <div style="display:flex; gap:8px; font-size:12px;"><span>🔍</span><span>👁️</span></div>
+        </div>
+        <div style="padding:8px; font-size:12px; border-bottom:1px solid #eee; display:flex; align-items:center; justify-content:space-between;">
+          <div><input type="checkbox"> <span style="opacity:0.6;">• Vector</span></div>
+          <div style="display:flex; gap:8px; font-size:12px; opacity:0; pointer-events:none;"><span>🔍</span><span>👁️</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons" style="margin-top: 24px;">
+  <div class="pros">
+    <h4 style="margin-bottom:8px;">选项 1. 底部悬浮操作区（FAB）</h4>
+    <ul style="padding-left:16px; font-size:14px; color:#555;">
+      <li>沉浸式体验好，不占用顶部纵向空间。</li>
+      <li>“多选”这一概念更加强化，操作按钮只在有选中项时弹出。</li>
+      <li>Figma 原生属性面板常有悬浮设计，契合生态习惯。</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4 style="margin-bottom:8px;">选项 2. 顶部工具栏 + 列表行内按钮</h4>
+    <ul style="padding-left:16px; font-size:14px; color:#555;">
+      <li>结构更像传统操作系统，对每个图层的单点操作（如定位、显隐）更直观。</li>
+      <li>不用多选也可以快速进行个别微调（点击行内按钮即可）。</li>
+      <li>顶部操作区可能较拥挤，压缩了列表展示空间。</li>
+    </ul>
+  </div>
+</div>
