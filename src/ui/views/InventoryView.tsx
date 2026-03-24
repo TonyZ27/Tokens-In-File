@@ -58,6 +58,9 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [topIndex, setTopIndex] = useState(0);
 
+  type TypeFilter = 'All' | 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
+  const [variableTypeFilter, setVariableTypeFilter] = useState<TypeFilter>('All');
+
   // --- Node status state machine ---
   const [nodeStatus, setNodeStatus] = useState<Map<string, NodeStatus>>(new Map());
   const [nodeErrors, setNodeErrors] = useState<Map<string, string>>(new Map());
@@ -179,6 +182,19 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
     });
   }, [nodes]);
 
+  // --- Derive visibility data for Collections ---
+  const collectionsVisibility = useMemo(() => {
+    const visibilityMap = new Map<string, Set<string>>();
+    nodes.forEach(n => {
+      const lib = n.libraryName || 'Local Library';
+      const coll = n.collectionName || 'Default';
+      const itemKey = `${lib}:${coll}`;
+      if (!visibilityMap.has(itemKey)) visibilityMap.set(itemKey, new Set());
+      if (n.variableType) visibilityMap.get(itemKey)!.add(n.variableType);
+    });
+    return visibilityMap;
+  }, [nodes]);
+
   const activeKey = useMemo(() => {
     if (selectedKey) return selectedKey;
     if (libraryGroups.length > 0 && libraryGroups[0].collections.length > 0) {
@@ -199,9 +215,10 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
       const matchSearch =
         n.variableName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         n.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchKey && matchSearch;
+      const matchType = variableTypeFilter === 'All' || n.variableType === variableTypeFilter;
+      return matchKey && matchSearch && matchType;
     });
-  }, [nodes, activeKey, searchQuery]);
+  }, [nodes, activeKey, searchQuery, variableTypeFilter]);
 
   // --- Flatten hierarchy for Virtuoso ---
   const { groupCounts, groupHeaders, flattenedItems } = useMemo(() => {
@@ -492,68 +509,125 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
     <div className="w-full h-full flex flex-col bg-[var(--figma-color-bg)] text-[var(--figma-color-text)] overflow-hidden">
 
       {/* Top Header */}
-      <div className="flex flex-col p-2 border-b border-[var(--figma-color-border)] gap-2">
-        <div className="flex items-center justify-between">
+      {/* Top Header */}
+      <div className="flex flex-col bg-[var(--figma-color-bg)] text-[var(--figma-color-text)]">
+        {/* Row 1: Nav Bar */}
+        <div className="flex items-center justify-between p-2">
           <Button variant="secondary" size="sm" onClick={onBack} className="px-2 border-transparent shadow-none hover:bg-[var(--figma-color-bg-hover)] h-6">
             <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back
           </Button>
-          <Button variant="secondary" size="sm" onClick={onRefresh} className="px-2 border-transparent shadow-none hover:bg-[var(--figma-color-bg-hover)] h-6" disabled={isRefreshing}>
-            {isRefreshing
-              ? <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" />
-              : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
-            Refresh
-          </Button>
         </div>
-        <div className="relative w-full">
-          <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 opacity-40" />
-          <input
-            type="text"
-            className="w-full h-7 pl-7 pr-2 text-[11px] bg-transparent border border-[var(--figma-color-border)] rounded focus:outline-none focus:border-[#0d99ff] transition-colors placeholder:text-[var(--figma-color-text-tertiary)]"
-            placeholder="Search tokens..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
+        
+        {/* Row 2: Type Filter with Top and Bottom Borders */}
+        <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar px-2 py-2 border-y border-[var(--figma-color-border)] bg-[var(--figma-color-bg-secondary)]/30">
+          {(['All', 'COLOR', 'FLOAT', 'STRING', 'BOOLEAN'] as TypeFilter[]).map(type => (
+            <button
+              key={type}
+              onClick={() => setVariableTypeFilter(type)}
+              className={cn(
+                "px-2 py-1 text-[10px] font-medium rounded-full whitespace-nowrap transition-colors border",
+                variableTypeFilter === type
+                  ? "bg-[#0d99ff]/10 text-[#0d99ff] border-[#0d99ff]"
+                  : "bg-transparent text-[var(--figma-color-text-secondary)] border-transparent hover:bg-[var(--figma-color-bg-hover)]"
+              )}
+            >
+              {type === 'FLOAT' ? 'Number' : type === 'COLOR' ? 'Color' : type === 'STRING' ? 'String' : type === 'BOOLEAN' ? 'Boolean' : 'All'}
+            </button>
+          ))}
+        </div>
+
+        {/* Row 3: Search & Refresh Toolbar */}
+        <div className="flex items-center gap-2 p-2 border-b border-[var(--figma-color-border)]">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 opacity-40" />
+            <input
+              type="text"
+              className="w-full h-7 pl-7 pr-2 text-[11px] bg-transparent border border-[var(--figma-color-border)] rounded focus:outline-none focus:border-[#0d99ff] transition-colors placeholder:text-[var(--figma-color-text-tertiary)]"
+              placeholder="Search tokens..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={onRefresh} 
+            className="px-2 border-[var(--figma-color-border)] shadow-none hover:bg-[var(--figma-color-bg-hover)] h-7 shrink-0 gap-1.5"
+            disabled={isRefreshing}
+          >
+            {isRefreshing
+              ? <RefreshCw className="w-3 h-3 animate-spin" />
+              : <RefreshCw className="w-3 h-3" />}
+            <span className="text-[11px]">Refresh</span>
+          </Button>
         </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar */}
-        <div className="w-[130px] overflow-y-auto border-r border-[var(--figma-color-border)] bg-[var(--figma-color-bg-secondary)] flex flex-col shrink-0 flex-nowrap hide-scrollbar p-1 gap-2">
-          {libraryGroups.map(group => (
-            <div key={group.libraryName} className="flex flex-col gap-0.5">
-              <div className="px-2 py-1 text-[9px] font-bold text-[var(--figma-color-text-tertiary)] uppercase tracking-wider truncate" title={group.libraryName}>
-                {group.libraryName}
+        <div className="w-[130px] overflow-y-auto border-r border-[var(--figma-color-border)] bg-[var(--figma-color-bg-secondary)] flex flex-col shrink-0 flex-nowrap hide-scrollbar p-1">
+          {libraryGroups.map(group => {
+            // Check visibility of each collection in this group
+            const collectionsWithVisibility = group.collections.map(c => {
+              const itemKey = `${group.libraryName}:${c}`;
+              const availableTypes = collectionsVisibility.get(itemKey) || new Set();
+              const isVisible = variableTypeFilter === 'All' || availableTypes.has(variableTypeFilter);
+              return { name: c, isVisible, itemKey };
+            });
+
+            // If ALL collections in this group are hidden, hide the group header too
+            const isGroupVisible = collectionsWithVisibility.some(c => c.isVisible);
+
+            return (
+              <div 
+                key={group.libraryName} 
+                className={cn(
+                  "flex flex-col transition-all duration-300 ease-in-out origin-top",
+                  isGroupVisible ? "opacity-100 max-h-[1000px] mb-2" : "opacity-0 max-h-0 overflow-hidden pointer-events-none mb-0"
+                )}
+              >
+                <div className="px-2 py-1 text-[9px] font-bold text-[var(--figma-color-text-tertiary)] uppercase tracking-wider truncate" title={group.libraryName}>
+                  {group.libraryName}
+                </div>
+                <div className="flex flex-col">
+                  {collectionsWithVisibility.map(coll => {
+                    const isVisible = coll.isVisible;
+                    const c = coll.name;
+                    const itemKey = coll.itemKey;
+                    const isSelected = activeKey === itemKey;
+                    const isMissing = group.libraryName === 'Missing' || c === 'Missing';
+                    const isHardcoded = group.libraryName === 'Hardcoded' || c === 'Hardcoded';
+                    const isUnlinked = group.libraryName === 'Unlinked Library';
+
+                    return (
+                      <button
+                        key={c}
+                        onClick={() => setSelectedKey(itemKey)}
+                        className={cn(
+                          "text-[10px] text-left font-medium px-2 rounded truncate transition-all duration-200 flex items-center justify-between group",
+                          isVisible 
+                            ? "opacity-100 max-h-12 py-1.5 mb-0.5" 
+                            : "opacity-0 max-h-0 py-0 mb-0 overflow-hidden pointer-events-none",
+                          isSelected
+                            ? "bg-[#0d99ff] text-white shadow-sm hover:bg-[#0084e5]"
+                            : isMissing
+                            ? "text-[#f24822] hover:bg-[#f24822]/10 hover:text-[#f24822]"
+                            : isHardcoded || isUnlinked
+                            ? "text-[var(--figma-color-text-tertiary)] hover:bg-[var(--figma-color-bg-hover)] hover:text-[var(--figma-color-text)] italic"
+                            : "text-[var(--figma-color-text-secondary)] hover:bg-[var(--figma-color-bg-hover)] hover:text-[var(--figma-color-text)]"
+                        )}
+                        title={c}
+                      >
+                        <span className="truncate">{c}</span>
+                        {isMissing && <CircleHelp className={cn("w-3 h-3 shrink-0 transition-opacity", isSelected ? "text-white opacity-100" : "text-[#f24822] opacity-80 group-hover:opacity-100")} />}
+                        {isHardcoded && <Unlink className={cn("w-3 h-3 shrink-0 transition-opacity", isSelected ? "text-white opacity-100" : "text-[var(--figma-color-text-tertiary)] opacity-80 group-hover:opacity-100")} />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              {group.collections.map(c => {
-                const itemKey = `${group.libraryName}:${c}`;
-                const isSelected = activeKey === itemKey;
-                const isMissing = group.libraryName === 'Missing' || c === 'Missing';
-                const isHardcoded = group.libraryName === 'Hardcoded' || c === 'Hardcoded';
-                const isUnlinked = group.libraryName === 'Unlinked Library';
-                return (
-                  <button
-                    key={c}
-                    onClick={() => setSelectedKey(itemKey)}
-                    className={cn(
-                      "text-[10px] text-left font-medium px-2 py-1.5 rounded truncate transition-all duration-150 flex items-center justify-between group",
-                      isSelected
-                        ? "bg-[#0d99ff] text-white shadow-sm hover:bg-[#0084e5]"
-                        : isMissing
-                        ? "text-[#f24822] hover:bg-[#f24822]/10 hover:text-[#f24822]"
-                        : isHardcoded || isUnlinked
-                        ? "text-[var(--figma-color-text-tertiary)] hover:bg-[var(--figma-color-bg-hover)] hover:text-[var(--figma-color-text)] italic"
-                        : "text-[var(--figma-color-text-secondary)] hover:bg-[var(--figma-color-bg-hover)] hover:text-[var(--figma-color-text)]"
-                    )}
-                    title={c}
-                  >
-                    <span className="truncate">{c}</span>
-                    {isMissing && <CircleHelp className={cn("w-3 h-3 shrink-0 transition-opacity", isSelected ? "text-white opacity-100" : "text-[#f24822] opacity-80 group-hover:opacity-100")} />}
-                    {isHardcoded && <Unlink className={cn("w-3 h-3 shrink-0 transition-opacity", isSelected ? "text-white opacity-100" : "text-[var(--figma-color-text-tertiary)] opacity-80 group-hover:opacity-100")} />}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Right Main Content */}

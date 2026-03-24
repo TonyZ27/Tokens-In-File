@@ -34,7 +34,8 @@
   - **刷新机制与动态监听**：
     - 列表顶部提供带 `Spin` 转圈动效反馈的 `🔄 Refresh` 按钮。
     - **钩子静默联动与状态锁定**：只要当前 Scope 为 `Selection` 或 `Current Page`，当 Figma 抛出对应的 `selectionchange` 或 `currentpagechange` 事件时，插件隐式触发一次后台级刷新以保持数据鲜活度。**交互冲突过滤**：系统必须能识别由插件发起的 `zoom-to-node` 定位操作，并在此时**锁定列表状态**，避免因选中项变更而触发非预期的列表重载，确保用户的审计流不被中断。
-  - **变量搜索**：提供一个搜索框（Search Variables by Keyword），允许按名称实时检索与过滤当前列表内的变量。
+  - **分类过滤 (Type Filter)**：搜索栏上方独立一栏及包含上划线（Border-top）以区分顶部导航，提供 All, Color, Number, String, Boolean 选项，All 为默认选中项。当某一 Variable Group 或 Collection 在过滤后不包含任何匹配类型的变量时，其对应的标题行自动隐藏，不占据界面空间。
+  - **变量搜索 (Keyword Search)**：提供一个搜索框（Search Variables by Keyword），允许按名称实时检索与过滤当前列表内的变量。搜索过滤与分类过滤执行 "AND" (且) 逻辑：显示结果 = (匹配所选类型) && (匹配搜索关键词)。
 - **多层级导航布局**：
   - **左侧边栏 (Sidebar)**：展示 Figma Variables/Styles 的 **Collections** 结构。**侧栏宽度固定为 `120px`**，以容纳较长的集合名称，防止文字截断。
     - **排序优先级 (Priority)**：`Variable Collections` (权重 1) > `Styles/Typography` (权重 2) > `Missing` (权重 3) > `Hardcoded` (权重 4)。确保常规资产优先显示，异常类资产（Missing/Hardcode）常驻底部。**同优先级项内部按字母序 (Alphabetical) 排序**。
