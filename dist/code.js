@@ -20,7 +20,7 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 // @ts-nocheck
-figma.showUI(__html__, { width: 400, height: 480, themeColors: true });
+figma.showUI(__html__, { width: 400, height: 560, themeColors: true });
 let isScanning = false;
 let isInternalSelectionChange = false;
 // 数据缓存池，防止多次 await 相同的底层变量耗散性能
@@ -523,6 +523,7 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
                     name: v.name,
                     collectionName: (_a = collectionsMap.get(v.variableCollectionId)) !== null && _a !== void 0 ? _a : 'Unknown',
                     resolvedType: v.resolvedType,
+                    value: v.valuesByMode[Object.keys(v.valuesByMode)[0]],
                 });
             });
             figma.ui.postMessage({ type: 'all-variables', payload });

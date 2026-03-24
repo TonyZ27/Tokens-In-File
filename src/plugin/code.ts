@@ -1,5 +1,5 @@
 // @ts-nocheck
-figma.showUI(__html__, { width: 400, height: 480, themeColors: true });
+figma.showUI(__html__, { width: 400, height: 560, themeColors: true });
 
 let isScanning = false;
 let isInternalSelectionChange = false;
@@ -13,7 +13,7 @@ const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
 
 figma.on('selectionchange', () => {
   if (isScanning) return;
-  
+
   if (isInternalSelectionChange) {
     figma.ui.postMessage({ type: 'selectionchange', source: 'plugin-internal' });
     isInternalSelectionChange = false;
@@ -40,7 +40,7 @@ async function traverseWithYield(
 
   async function walk(n: BaseNode, inheritedMatch: boolean = false) {
     if (!isScanning) return;
-    
+
     let isDirectMatch = false;
     if (n.type !== 'PAGE' && n.type !== 'DOCUMENT') {
       if (layerTypes.component && n.type === 'COMPONENT') isDirectMatch = true;
@@ -59,7 +59,7 @@ async function traverseWithYield(
     if ('children' in n) {
       for (const child of n.children) {
         if (!isScanning) return;
-        
+
         if (Date.now() - startTime > maxExecutionTimeMs) {
           await yieldToMain();
           startTime = Date.now();
@@ -77,7 +77,7 @@ function getTopFirstFrameName(node: BaseNode): string {
   let curr = node.parent;
   while (curr && curr.type !== 'PAGE' && curr.type !== 'DOCUMENT') {
     if (curr.type === 'FRAME' || curr.type === 'SECTION') {
-       return curr.name;
+      return curr.name;
     }
     curr = curr.parent;
   }
@@ -135,7 +135,7 @@ figma.ui.onmessage = async (msg) => {
     cacheCollections.clear();
 
     const { scope, types, sources, layerTypes } = msg.payload;
-    
+
     // 2. 确定扫描范围（显式锁定在当前文档的页面内）
     let roots: readonly BaseNode[] = [figma.currentPage];
     if (scope === 'file') {
@@ -159,7 +159,7 @@ figma.ui.onmessage = async (msg) => {
     try {
       const localCollections = await figma.variables.getLocalVariableCollectionsAsync();
       localCollections.forEach(c => localCollectionIds.add(c.id));
-      
+
       // 获取已添加到本文件的团队库变量集合，用于识别具体库名
       const libCollections = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
       libCollections.forEach(lc => {
@@ -173,7 +173,7 @@ figma.ui.onmessage = async (msg) => {
     } catch (e: any) {
       figma.notify(`teamLibrary error: ${e?.message}`, { timeout: 3000 });
     }
-    
+
     // 辅助：获取图层所属页面名称
     const getPageName = (node: BaseNode): string => {
       let curr: BaseNode | null = node;
@@ -243,10 +243,10 @@ figma.ui.onmessage = async (msg) => {
                       source: 'missing',
                       isLocked: node.locked,
                       isHidden: !node.visible,
-                       variableType: 'MISSING',
-                       boundPropertyKeys: varIdToKeys.get(varId) ?? [],
-                       libraryName: 'Missing'
-                     });
+                      variableType: 'MISSING',
+                      boundPropertyKeys: varIdToKeys.get(varId) ?? [],
+                      libraryName: 'Missing'
+                    });
                   }
                 } else {
                   const parts = v.name.split('/');
@@ -267,16 +267,16 @@ figma.ui.onmessage = async (msg) => {
                       source: source,
                       isLocked: node.locked,
                       isHidden: !node.visible,
-                       variableType: v.resolvedType,
-                       value: v.valuesByMode[Object.keys(v.valuesByMode)[0]],
-                       boundPropertyKeys: varIdToKeys.get(varId) ?? [],
-                       libraryName: source === 'local' ? 'Local Library' : (() => {
-                         if (!c) return 'Unlinked Library';
-                         return libraryMappingByKey.get(c.key)
-                           || libraryMappingByName.get(c.name)
-                           || 'Unlinked Library';
-                       })()
-                     });
+                      variableType: v.resolvedType,
+                      value: v.valuesByMode[Object.keys(v.valuesByMode)[0]],
+                      boundPropertyKeys: varIdToKeys.get(varId) ?? [],
+                      libraryName: source === 'local' ? 'Local Library' : (() => {
+                        if (!c) return 'Unlinked Library';
+                        return libraryMappingByKey.get(c.key)
+                          || libraryMappingByName.get(c.name)
+                          || 'Unlinked Library';
+                      })()
+                    });
                   }
                 }
               } else if (sources.missing) {
@@ -292,10 +292,10 @@ figma.ui.onmessage = async (msg) => {
                   source: 'missing',
                   isLocked: node.locked,
                   isHidden: !node.visible,
-                   variableType: 'MISSING',
-                   boundPropertyKeys: varIdToKeys.get(varId) ?? [],
-                   libraryName: 'Missing'
-                 });
+                  variableType: 'MISSING',
+                  boundPropertyKeys: varIdToKeys.get(varId) ?? [],
+                  libraryName: 'Missing'
+                });
               }
             }
           }
@@ -323,11 +323,11 @@ figma.ui.onmessage = async (msg) => {
                   frameName: getTopFirstFrameName(node),
                   pageName: currentPageName,
                   source: source,
-                   isLocked: node.locked,
-                   isHidden: !node.visible,
-                   variableType: 'TYPOGRAPHY',
-                   libraryName: source === 'local' ? 'Local Library' : 'Unlinked Library'
-                 });
+                  isLocked: node.locked,
+                  isHidden: !node.visible,
+                  variableType: 'TYPOGRAPHY',
+                  libraryName: source === 'local' ? 'Local Library' : 'Unlinked Library'
+                });
               }
             } else if (!style && sources.missing) {
               results.push({
@@ -341,11 +341,11 @@ figma.ui.onmessage = async (msg) => {
                 frameName: getTopFirstFrameName(node),
                 pageName: currentPageName,
                 source: 'missing',
-                 isLocked: node.locked,
-                 isHidden: !node.visible,
-                 variableType: 'MISSING',
-                 libraryName: 'Missing'
-               });
+                isLocked: node.locked,
+                isHidden: !node.visible,
+                variableType: 'MISSING',
+                libraryName: 'Missing'
+              });
             }
           }
         }
@@ -354,7 +354,7 @@ figma.ui.onmessage = async (msg) => {
         const colorStyleIds = new Set<string>();
         if ('fillStyleId' in node && typeof node.fillStyleId === 'string' && node.fillStyleId) colorStyleIds.add(node.fillStyleId);
         if ('strokeStyleId' in node && typeof node.strokeStyleId === 'string' && node.strokeStyleId) colorStyleIds.add(node.strokeStyleId);
-        
+
         for (const styleId of colorStyleIds) {
           const style = figma.getStyleById(styleId);
           if (style && (style.type === 'PAINT' || style.type === 'COLOR')) {
@@ -380,10 +380,10 @@ figma.ui.onmessage = async (msg) => {
                 source: source,
                 isLocked: node.locked,
                 isHidden: !node.visible,
-                 variableType: 'COLOR',
-                 value: colorValue,
-                 libraryName: source === 'local' ? 'Local Library' : 'Unlinked Library'
-               });
+                variableType: 'COLOR',
+                value: colorValue,
+                libraryName: source === 'local' ? 'Local Library' : 'Unlinked Library'
+              });
             }
           } else if (!style && sources.missing) {
             results.push({
@@ -428,11 +428,11 @@ figma.ui.onmessage = async (msg) => {
               frameName: getTopFirstFrameName(node),
               pageName: currentPageName,
               source: 'unlinked',
-               isLocked: node.locked,
-               isHidden: !node.visible,
-               variableType: 'UNKNOWN',
-               libraryName: 'Hardcoded'
-             });
+              isLocked: node.locked,
+              isHidden: !node.visible,
+              variableType: 'UNKNOWN',
+              libraryName: 'Hardcoded'
+            });
           }
         }
       }, layerTypes);
@@ -444,7 +444,7 @@ figma.ui.onmessage = async (msg) => {
       isScanning = false;
     }
   }
-  
+
   // 响应取消中断
   if (msg.type === 'cancel-scan') {
     isScanning = false;
@@ -459,10 +459,10 @@ figma.ui.onmessage = async (msg) => {
         // 如果目标图层不在当前页，先切换页面
         const parentPage = sceneNode.parent && sceneNode.parent.type !== 'PAGE'
           ? (function findPage(n: BaseNode): PageNode | null {
-              let curr: BaseNode | null = n;
-              while (curr) { if (curr.type === 'PAGE') return curr as PageNode; curr = curr.parent; }
-              return null;
-            })(sceneNode)
+            let curr: BaseNode | null = n;
+            while (curr) { if (curr.type === 'PAGE') return curr as PageNode; curr = curr.parent; }
+            return null;
+          })(sceneNode)
           : sceneNode.parent as PageNode | null;
         if (parentPage && figma.currentPage.id !== parentPage.id) {
           figma.currentPage = parentPage;
@@ -474,12 +474,12 @@ figma.ui.onmessage = async (msg) => {
           isInternalSelectionChange = true;
           figma.currentPage.selection = [sceneNode];
         }
-        
+
         figma.viewport.scrollAndZoomIntoView([sceneNode]);
       } else if (!node || !belongsToCurrentFile(node as BaseNode)) {
         figma.notify("该图层不属于当前文件，无法定位");
       }
-    } catch(e) {
+    } catch (e) {
       figma.notify("图层定位失败 (可能已被删除)");
     }
   }
@@ -500,6 +500,7 @@ figma.ui.onmessage = async (msg) => {
         name: v.name,
         collectionName: collectionsMap.get(v.variableCollectionId) ?? 'Unknown',
         resolvedType: v.resolvedType,
+        value: v.valuesByMode[Object.keys(v.valuesByMode)[0]],
       }));
       figma.ui.postMessage({ type: 'all-variables', payload });
     } catch (e) {
@@ -582,11 +583,11 @@ figma.ui.onmessage = async (msg) => {
     try {
       const tv = await figma.variables.getVariableByIdAsync(targetVariableId);
       targetVarExists = !!tv;
-    } catch (_) {}
+    } catch (_) { }
 
-    const results: Array<{ 
-      id: string; 
-      success: boolean; 
+    const results: Array<{
+      id: string;
+      success: boolean;
       reason?: string;
       newData?: {
         variableName: string;
@@ -612,7 +613,7 @@ figma.ui.onmessage = async (msg) => {
           variableType: tv.resolvedType
         };
       }
-    } catch (_) {}
+    } catch (_) { }
 
     if (!targetMetaData) {
       figma.ui.postMessage({
@@ -637,7 +638,7 @@ figma.ui.onmessage = async (msg) => {
         const r = await applyVariableBinding(sceneNode, targetVariableId);
 
         if (wasLocked) sceneNode.locked = true;
-        
+
         if (r.success) {
           results.push({ id: id, success: true, newData: targetMetaData });
         } else {
@@ -657,9 +658,9 @@ figma.ui.onmessage = async (msg) => {
       nodes: Array<{ id: string; boundPropertyKeys: string[] }>;
     };
 
-    const results: Array<{ 
-      id: string; 
-      success: boolean; 
+    const results: Array<{
+      id: string;
+      success: boolean;
       reason?: string;
       newData?: {
         variableName: string;
@@ -686,11 +687,11 @@ figma.ui.onmessage = async (msg) => {
         const r = await applyVariableBinding(sceneNode, null);
 
         if (wasLocked) sceneNode.locked = true;
-        
+
         if (r.success) {
-          results.push({ 
-            id: id, 
-            success: true, 
+          results.push({
+            id: id,
+            success: true,
             newData: {
               variableName: 'Unlinked Properties',
               collectionName: 'Hardcoded',

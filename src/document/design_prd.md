@@ -12,11 +12,12 @@
 > **交互组件与对齐**：为提升点击效率，Type (属性)、Source (来源) 及 Layer Types (层级) 的多选交互统一采用 **`ToggleChip` (胶囊切换按钮)** 替代传统的 Checkbox。
 
 - **页面结构**：作为插件唤起后的默认展示页，它承载全部过滤网。
+  - **Scope (搜索范围)**: 使用 Select 下拉菜单控件封装。默认选中 **Current Selection**。选项排序为：`Current Selection` > `Current Page` > `Entire File`。
   - **Type (属性过滤)**: 使用 Select 下拉菜单控件封装（包含 All, Variables, Style），精简主屏空间。
   - **Source (来源过滤)**: 允许组合过滤 `Local`, `Linked`, `Unlinked` 以及已被彻底移除造成的 **`Missing`** 引用。`Missing` 标签取消警示红文案以防引发不必要的误导焦虑。
   - **批量选择 (Select/Deselect All)**：Source / Layer Types 选项组右上侧提供显式的 `Select All` 按钮。
   - **组件视觉降噪**：选中的 `ToggleChip` 防撞色处理，弃用大面积 Fill 色块，转用轻盈的品牌色边框与浅透明底色，与底部的 `Scan` 主按钮拉开视觉层级。
-  - **Layer Type (通透匹配判定)**: 包含 `All`, `Component`, `Instance`, `Text`, `Shape`, `Frame` 等选项。各选项固定维护严整的 **3-column 网格布局**，保障列表对齐美感。**注意匹配降级逻辑**：只要组件/容器的上游命中了用户的勾选项，该组件或容器内包裹的所有深层子代节点均被视为“连带命中”。保证结构化查询时不会因为子图层类型不对而漏扫其上绑定的 token。
+  - **Layer Type (通透匹配判定)**: 包含 `All`, `Component`, `Instance`, `Text`, `Shape`, `Frame` 等选项。各选项（及 Source 选项）固定维护严整的 **3-column 网格布局**，保障列表对齐美感。**注意匹配降级逻辑**：只要组件/容器的上游命中了用户的勾选项，该组件或容器内包裹的所有深层子代节点均被视为“连带命中”。保证结构化查询时不会因为子图层类型不对而漏扫其上绑定的 token。
   - **状态持久化 (State Persistence)**: 从次级页面 (Inventory) 退回首屏时，保留并继承上一次成功发起的扫描参数勾选项。
 - **Primary Action (扫描执行)**:
   - 点击 `Scan` 按钮后，按钮自身文案或图标需切换为 Loading 态（如 Spinner），此刻给全屏加上一个隐形的 Overlay 以拦截任何对筛选器的次生点击修改。
@@ -35,7 +36,10 @@
     - 列表顶部提供带 `Spin` 转圈动效反馈的 `🔄 Refresh` 按钮。
     - **钩子静默联动与状态锁定**：只要当前 Scope 为 `Selection` 或 `Current Page`，当 Figma 抛出对应的 `selectionchange` 或 `currentpagechange` 事件时，插件隐式触发一次后台级刷新以保持数据鲜活度。**交互冲突过滤**：系统必须能识别由插件发起的 `zoom-to-node` 定位操作，并在此时**锁定列表状态**，避免因选中项变更而触发非预期的列表重载，确保用户的审计流不被中断。
   - **分类过滤 (Type Filter)**：搜索栏上方独立一栏及包含上划线（Border-top）以区分顶部导航，提供 All, Color, Number, String, Boolean 选项，All 为默认选中项。当某一 Variable Group 或 Collection 在过滤后不包含任何匹配类型的变量时，其对应的标题行自动隐藏，不占据界面空间。
-  - **变量搜索 (Keyword Search)**：提供一个搜索框（Search Variables by Keyword），允许按名称实时检索与过滤当前列表内的变量。搜索过滤与分类过滤执行 "AND" (且) 逻辑：显示结果 = (匹配所选类型) && (匹配搜索关键词)。
+  - **全局控制工具栏 (Sticky Toolbar)**：采用“静态集成”布局，将搜索与批量操作整合至顶部的第 3 行吸顶栏中。
+    - **控件排序 (Left to Right)**：`Keyword Search` (flex-1) -> `Replace` -> `Detach` -> `🔄 Refresh`。
+    - **变量搜索 (Keyword Search)**：允许在当前列表内进行名称检索。搜索与分类过滤执行 "AND" (且) 逻辑。
+    - **刷新机制 (Refresh)**：按钮精简为**纯图标模式 (Icon-only)**，带 `Spin` 转圈动效反馈。支持点击刷新与 selectionchange 自动刷新（受交互冲突过滤保护）。
 - **多层级导航布局**：
   - **左侧边栏 (Sidebar)**：展示 Figma Variables/Styles 的 **Collections** 结构。**侧栏宽度固定为 `120px`**，以容纳较长的集合名称，防止文字截断。
     - **排序优先级 (Priority)**：`Variable Collections` (权重 1) > `Styles/Typography` (权重 2) > `Missing` (权重 3) > `Hardcoded` (权重 4)。确保常规资产优先显示，异常类资产（Missing/Hardcode）常驻底部。**同优先级项内部按字母序 (Alphabetical) 排序**。
@@ -73,8 +77,9 @@
 ## 4. 批量排错区 (Batch Actions)
 
 ### 4.1 动作触发层可见性与组内全选 (Group Selection)
-- **动作按钮激活条件**：动作按钮（Replace 和 Detach）只有在列表中**至少由 Checkbox 勾选了 `>= 1` 个图层节点**时才会激活。
-- **未勾选态**：未勾选任何项目时，这部分 UI 应保持禁用（Opacity 50%）以防误触。
+- **交互位置**：动作按钮（Replace 和 Detach）静态集成于顶部 Sticky Header 工具栏右侧。
+- **动作按钮激活条件**：只有在列表中**至少由 Checkbox 勾选了 `>= 1` 个图层节点**时才会激活。
+- **未勾选态**：未勾选任何项目时，按钮显示为禁用状态（Opacity 50%）以防误触。
 - **Variable 层级全选 (Select All in Group)**：
   - **交互位置**：在 Accordion Header (Variable Row) 的变量图标左侧增加 Checkbox。
   - **全选逻辑**：勾选 Header Checkbox，自动选中该变量下当前过滤后可见的所有图层节点。
@@ -83,13 +88,16 @@
 
 ### 4.2 核心修补动作响应 (Replace / Detach)
 - **Replace (批量映射替换)**:
-  - 点击后，就地弹起 Figma 设计规范的下拉搜索栏（Popover Menu）。
+  - **样式规范**：按钮为**纯文字模式 (Text-only)**，样式与 Refresh 按钮高度对齐。
+  - **交互行为**：点击后，在搜索栏下方（Position: Bottom）弹起 Figma 设计规范的下拉搜索栏（Popover Menu）。
+  - **搜索列表增强**：弹窗内的每个变量候选项均需同步展示其 **Token 类型图标** 与 **具体逻辑数值** (如颜色色块、Number Badge)，确保用户在替换前能直观比对数值。
   - 用户在输入框中实时检索库里正常的 Variable。点击映射后，弹窗关闭。
   - **批量操作反馈动画**：
     - **成功**：项目行立即显示绿色背景闪烁 -> 600ms 后执行淡出动画 -> 400ms 后从列表中彻底移除。
     - **失败**：保留红色背景、显示 `XCircle` 图标，并在悬停时通过 Tooltip 显示失败原因（如“受限图层”）。
   - **锁定图层替换逻辑**：对于被 Locked 的图层，后台逻辑应为“临时解锁 -> 替换变量 -> 重新锁回去”（保障替换通过）。
 - **Detach (解绑为硬编码)**:
+  - **样式规范**：按钮为**纯文字模式 (Text-only)**，样式与 Refresh 按钮高度对齐。
   - 操作生效后向工作区底部抛出一个原生带 `Cancel/Undo` 功能的 Toast `(figma.notify)`。用原生提醒兜底由于误触带来的解绑后患。
   - 失败或部分成功表现同上，提供状态分类反馈。
 

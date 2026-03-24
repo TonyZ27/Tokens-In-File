@@ -10,6 +10,7 @@ import {
 import { GroupedVirtuoso } from 'react-virtuoso';
 import { Checkbox } from '../components/Checkbox';
 import { cn } from '../utils/cn';
+import { TokenValueDisplay, VariableTypeIcon } from '../components/TokenValue';
 
 export interface TokenNode {
   id: string;
@@ -431,79 +432,6 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
 
   const hasSelection = selectedNodeIds.size > 0;
 
-  // --- Figma-like Variable Hexagon Icon ---
-  const VariableIcon = ({ className }: { className?: string }) => (
-    <svg 
-      width="10" 
-      height="10" 
-      viewBox="0 0 12 12" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-      className={cn("shrink-0 opacity-40", className)}
-    >
-      <path 
-        d="M6 1L10.33 3.5V8.5L6 11L1.67 8.5V3.5L6 1Z" 
-        stroke="currentColor" 
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
-  // --- Token Value Display helper ---
-  const TokenValueDisplay = ({ vType, value }: { vType: string, value: any }) => {
-    if (value === undefined || value === null) return null;
-
-    if (vType === 'COLOR') {
-      const r = Math.round(value.r * 255);
-      const g = Math.round(value.g * 255);
-      const b = Math.round(value.b * 255);
-      const a = value.a !== undefined ? value.a : 1;
-      
-      return (
-        <div className="flex items-center shrink-0">
-          <div 
-            className="w-3.5 h-3.5 rounded-full border border-[var(--figma-color-border)] shrink-0 shadow-sm" 
-            style={{ backgroundColor: `rgba(${r}, ${g}, ${b}, ${a})` }}
-          />
-        </div>
-      );
-    }
-
-    if (vType === 'FLOAT' || vType === 'STRING' || vType === 'BOOLEAN') {
-      let displayValue = value;
-      if (vType === 'FLOAT') displayValue = Number(value).toFixed(0);
-      if (vType === 'BOOLEAN') displayValue = value ? 'yes' : 'no';
-
-      return (
-        <div className="px-1.5 py-0.5 rounded bg-[var(--figma-color-bg-secondary)] border border-[var(--figma-color-border)] shrink-0 max-w-[80px] flex items-center justify-center">
-          <span className={cn(
-            "text-[9px] font-medium text-[var(--figma-color-text-secondary)] truncate",
-            (vType === 'FLOAT' || vType === 'BOOLEAN') && "uppercase font-bold"
-          )}>
-            {displayValue}
-          </span>
-        </div>
-      );
-    }
-
-    return null;
-  };
-
-  // --- Variable Type Icon helper ---
-  const VariableTypeIcon = ({ vType }: { vType: string }) => {
-    if (vType === 'TYPOGRAPHY') {
-      return (
-        <div className="w-3 h-3 flex items-center justify-center text-[var(--figma-color-text-secondary)] shrink-0 font-bold text-[10px] leading-none">
-          Aa
-        </div>
-      );
-    }
-    if (vType === 'MISSING') return <CircleHelp className="w-3 h-3 text-red-500 shrink-0" />;
-    
-    // Unified Variable Icon for all other types
-    return <VariableIcon className="text-[var(--figma-color-icon-secondary)]" />;
-  };
 
   return (
     <div className="w-full h-full flex flex-col bg-[var(--figma-color-bg)] text-[var(--figma-color-text)] overflow-hidden">
@@ -536,9 +464,19 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
           ))}
         </div>
 
-        {/* Row 3: Search & Refresh Toolbar */}
-        <div className="flex items-center gap-2 p-2 border-b border-[var(--figma-color-border)]">
-          <div className="relative flex-1">
+        {/* Row 3: Search & Actions Toolbar */}
+        <div className="flex items-center gap-1.5 p-2 border-b border-[var(--figma-color-border)] relative">
+          {/* Replace Popover anchored here */}
+          <ReplacePopover
+            isOpen={isPopoverOpen}
+            isLoading={isLoadingVars}
+            variables={availableVariables}
+            onSelect={handleVariableSelected}
+            onClose={() => setIsPopoverOpen(false)}
+            position="bottom"
+          />
+
+          <div className="relative flex-1 min-w-0">
             <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 opacity-40" />
             <input
               type="text"
@@ -548,18 +486,47 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
               onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={onRefresh} 
-            className="px-2 border-[var(--figma-color-border)] shadow-none hover:bg-[var(--figma-color-bg-hover)] h-7 shrink-0 gap-1.5"
-            disabled={isRefreshing}
-          >
-            {isRefreshing
-              ? <RefreshCw className="w-3 h-3 animate-spin" />
-              : <RefreshCw className="w-3 h-3" />}
-            <span className="text-[11px]">Refresh</span>
-          </Button>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={handleReplaceClick} 
+              className={cn(
+                "px-2 border-[var(--figma-color-border)] shadow-none h-7 font-medium",
+                !hasSelection && "opacity-50 grayscale-[0.5]"
+              )}
+              disabled={!hasSelection}
+            >
+              <span className="text-[11px]">Replace</span>
+            </Button>
+
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={handleDetach} 
+              className={cn(
+                "px-2 border-[var(--figma-color-border)] shadow-none h-7 font-medium",
+                !hasSelection && "opacity-50 grayscale-[0.5]"
+              )}
+              disabled={!hasSelection}
+            >
+              <span className="text-[11px]">Detach</span>
+            </Button>
+
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={onRefresh} 
+              className="px-2 border-[var(--figma-color-border)] shadow-none hover:bg-[var(--figma-color-bg-hover)] h-7 shrink-0"
+              disabled={isRefreshing}
+              title="Refresh"
+            >
+              {isRefreshing
+                ? <RefreshCw className="w-3 h-3 animate-spin" />
+                : <RefreshCw className="w-3 h-3" />}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -811,39 +778,6 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
             </div>
           )}
         </div>
-      </div>
-
-      {/* FAB Batch Action Bottom Bar */}
-      <div className="relative p-2 border-t border-[var(--figma-color-border)] bg-[var(--figma-color-bg)] flex gap-2 z-[35] shrink-0">
-        {/* Replace Popover anchored above this bar */}
-        <ReplacePopover
-          isOpen={isPopoverOpen}
-          isLoading={isLoadingVars}
-          variables={availableVariables}
-          onSelect={handleVariableSelected}
-          onClose={() => setIsPopoverOpen(false)}
-        />
-
-        <Button
-          variant="primary"
-          size="sm"
-          fullWidth
-          disabled={!hasSelection}
-          onClick={handleReplaceClick}
-          className={cn(!hasSelection && "opacity-50 cursor-not-allowed")}
-        >
-          Replace {hasSelection ? `(${selectedNodeIds.size})` : ''}
-        </Button>
-        <Button
-          variant="danger"
-          size="sm"
-          fullWidth
-          disabled={!hasSelection}
-          onClick={handleDetach}
-          className={cn(!hasSelection && "opacity-50 cursor-not-allowed")}
-        >
-          Detach
-        </Button>
       </div>
 
     </div>

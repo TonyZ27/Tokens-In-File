@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "figma-plugin-development", "runs": [{"id": "eval-1-old_skill", "prompt": "\u5728 InventoryView \u9876\u90e8\u7684\u5168\u5c40\u64cd\u4f5c\u533a\u589e\u52a0\u4e00\u4e2a 'Export' \u6309\u94ae\u3002\u70b9\u51fb\u65f6\u9700\uff1a1. \u63d0\u53d6\u5f53\u524d\u8fc7\u6ee4\u540e\u7684\u6240\u6709\u53d8\u91cf\u6570\u636e\uff1b2. \u5c55\u793a\u5904\u7406\u4e2d\u7684 Loading \u72b6\u6001\uff1b3. \u751f\u6210 JSON \u5e76\u901a\u8fc7 postMessage \u53d1\u9001\u5230\u540e\u53f0\uff08\u5047\u8bbe\u540e\u53f0\u4f1a\u5904\u7406\u4e0b\u8f7d\uff09\u3002\u4efb\u52a1\u5b8c\u6210\u540e\uff0c\u8bf7\u540c\u6b65\u66f4\u65b0\u8bbe\u8ba1 PRD \u5e76\u8fd0\u884c\u6784\u5efa\u9a8c\u8bc1\u3002", "eval_id": 1, "outputs": [{"name": "InventoryView.tsx", "type": "text", "content": "import { useState, useMemo, useEffect, useCallback } from 'react';\nimport { Button } from '../components/Button';\nimport { ReplacePopover, AvailableVariable } from '../components/ReplacePopover';\nimport {\n  ArrowLeft, RefreshCw, Search, ChevronDown, ChevronRight,\n  Lock, EyeOff, Target, Component, Box, Type, Square, Frame,\n  CircleHelp, Unlink,\n  CheckCircle2, XCircle, Download,\n} from 'lucide-react';\nimport { GroupedVirtuoso } from 'react-virtuoso';\nimport { Checkbox } from '../components/Checkbox';\nimport { cn } from '../utils/cn';\nimport { TokenValueDisplay, VariableTypeIcon } from '../components/TokenValue';\n\nexport interface TokenNode {\n  id: string;\n  name: string;\n  type: string;\n  variableName: string;\n  collectionName: string;\n  groupName: string;\n  frameName: string;\n  pageName: string;\n  source: 'local' | 'linked' | 'unlinked' | 'missing';\n  isLocked: boolean;\n  isHidden: boolean;\n  variableType?: 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN' | 'TYPOGRAPHY' | 'MISSING' | 'UNKNOWN';\n  /** Property keys bound to variables on this node (e.g. 'fills', 'strokes', 'opacity') */\n  boundPropertyKeys?: string[];\n  /** For styles, the style id */\n  variableId?: string | null;\n  /** Actual value of the variable/style */\n  value?: any;\n  /** Library name identifying the source of the variable/style */\n  libraryName?: string;\n}\n\ninterface InventoryViewProps {\n  onBack: () => void;\n  onRefresh: () => void;\n  isRefreshing: boolean;\n  nodes: TokenNode[];\n}\n\ntype NodeStatus = 'idle' | 'pending' | 'success' | 'error';\n\n// Flat list types for Virtuoso rendering\ntype ListItem =\n  | { type: 'groupHeader'; name: string; isCollapsed: boolean }\n  | { type: 'variableRow'; id: string; name: string; count: number; isExpanded: boolean; variableType: string; value?: any; isChecked: boolean; isIndeterminate: boolean }\n  | { type: 'frameHeader'; name: string }\n  | { type: 'nodeRow'; node: TokenNode; isChecked: boolean };\n\nexport function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: InventoryViewProps) {\n  const [searchQuery, setSearchQuery] = useState('');\n  const [selectedKey, setSelectedKey] = useState<string>('');\n  const [expandedVars, setExpandedVars] = useState<Set<string>>(new Set());\n  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());\n  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());\n  const [topIndex, setTopIndex] = useState(0);\n\n  type TypeFilter = 'All' | 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';\n  const [variableTypeFilter, setVariableTypeFilter] = useState<TypeFilter>('All');\n\n  // --- Node status state machine ---\n  const [nodeStatus, setNodeStatus] = useState<Map<string, NodeStatus>>(new Map());\n  const [nodeErrors, setNodeErrors] = useState<Map<string, string>>(new Map());\n  // Ids fading out after success (CSS transition)\n  const [fadingIds, setFadingIds] = useState<Set<string>>(new Set());\n  const [isExporting, setIsExporting] = useState(false);\n\n  // --- Replace Popover state ---\n  const [isPopoverOpen, setIsPopoverOpen] = useState(false);\n  const [isLoadingVars, setIsLoadingVars] = useState(false);\n  const [availableVariables, setAvailableVariables] = useState<AvailableVariable[]>([]);\n\n  // --- Listen to plugin messages ---\n  useEffect(() => {\n    const handleMessage = (event: MessageEvent) => {\n      const msg = event.data?.pluginMessage;\n      if (!msg) return;\n\n      if (msg.type === 'all-variables') {\n        setAvailableVariables(msg.payload);\n        setIsLoadingVars(false);\n      }\n\n      if (msg.type === 'batch-replace-result' || msg.type === 'batch-detach-result') {\n        const results: Array<{ id: string; success: boolean; reason?: string }> = msg.payload;\n\n        const newStatus = new Map(nodeStatus);\n        const newErrors = new Map(nodeErrors);\n        const successKeys: string[] = [];\n\n        results.forEach(r => {\n          Array.from(newStatus.keys()).forEach(key => {\n            if (key.startsWith(r.id + '::')) {\n              if (r.success) {\n                newStatus.set(key, 'success');\n                successKeys.push(key);\n              } else {\n                newStatus.set(key, 'error');\n                newErrors.set(key, r.reason ?? '\u64cd\u4f5c\u5931\u8d25');\n              }\n            }\n          });\n        });\n\n        setNodeStatus(newStatus);\n        setNodeErrors(newErrors);\n\n        // Fade-out success items after 600ms, then remove from list\n        if (successKeys.length > 0) {\n          setTimeout(() => {\n            setFadingIds(prev => new Set([...prev, ...successKeys]));\n            setTimeout(() => {\n              setSelectedNodeIds(prev => {\n                const next = new Set(prev);\n                successKeys.forEach(k => next.delete(k));\n                return next;\n              });\n              setNodeStatus(prev => {\n                const next = new Map(prev);\n                successKeys.forEach(k => next.delete(k));\n                return next;\n              });\n              setFadingIds(prev => {\n                const next = new Set(prev);\n                successKeys.forEach(k => next.delete(k));\n                return next;\n              });\n            }, 400);\n          }, 600);\n        }\n      }\n    };\n\n    window.addEventListener('message', handleMessage);\n    return () => window.removeEventListener('message', handleMessage);\n  }, [nodeStatus, nodeErrors]);\n\n  // --- Derive collections ---\n  type LibraryGroup = {\n    libraryName: string;\n    collections: string[];\n    priority: number;\n  };\n\n  const libraryGroups = useMemo(() => {\n    const groupsMap = new Map<string, Set<string>>();\n    nodes.forEach(n => {\n      const lib = n.libraryName || 'Local Library';\n      const coll = n.collectionName || 'Default';\n      if (!groupsMap.has(lib)) groupsMap.set(lib, new Set());\n      groupsMap.get(lib)!.add(coll);\n    });\n\n    const groups: LibraryGroup[] = Array.from(groupsMap.entries()).map(([lib, collSet]) => {\n      const colls = Array.from(collSet).sort((a, b) => {\n        const getPriority = (name: string) => {\n          if (name === 'Hardcoded') return 4;\n          if (name === 'Missing') return 3;\n          if (name.includes('Styles') || name === 'Typography') return 2;\n          return 1;\n        };\n        const pA = getPriority(a);\n        const pB = getPriority(b);\n        if (pA !== pB) return pA - pB;\n        return a.localeCompare(b);\n      });\n      \n      let priority = 2; // Specific Linked Libraries\n      if (lib === 'Local Library') priority = 1;\n      if (lib === 'Unlinked Library') priority = 3;\n      if (lib === 'Missing') priority = 4;\n      if (lib === 'Hardcoded') priority = 5;\n      \n      return { libraryName: lib, collections: colls, priority };\n    });\n\n    return groups.sort((a, b) => {\n      if (a.priority !== b.priority) return a.priority - b.priority;\n      return a.libraryName.localeCompare(b.libraryName);\n    });\n  }, [nodes]);\n\n  // --- Derive visibility data for Collections ---\n  const collectionsVisibility = useMemo(() => {\n    const visibilityMap = new Map<string, Set<string>>();\n    nodes.forEach(n => {\n      const lib = n.libraryName || 'Local Library';\n      const coll = n.collectionName || 'Default';\n      const itemKey = `${lib}:${coll}`;\n      if (!visibilityMap.has(itemKey)) visibilityMap.set(itemKey, new Set());\n      if (n.variableType) visibilityMap.get(itemKey)!.add(n.variableType);\n    });\n    return visibilityMap;\n  }, [nodes]);\n\n  const activeKey = useMemo(() => {\n    if (selectedKey) return selectedKey;\n    if (libraryGroups.length > 0 && libraryGroups[0].collections.length > 0) {\n      return `${libraryGroups[0].libraryName}:${libraryGroups[0].collections[0]}`;\n    }\n    return 'Local Library:Default';\n  }, [selectedKey, libraryGroups]);\n\n  const filteredNodes = useMemo(() => {\n    const splitIndex = activeKey.indexOf(':');\n    const activeLib = activeKey.slice(0, splitIndex);\n    const activeColl = activeKey.slice(splitIndex + 1);\n\n    return nodes.filter(n => {\n      const nodeLib = n.libraryName || 'Local Library';\n      const nodeColl = n.collectionName || 'Default';\n      const matchKey = nodeLib === activeLib && nodeColl === activeColl;\n      const matchSearch =\n        n.variableName.toLowerCase().includes(searchQuery.toLowerCase()) ||\n        n.name.toLowerCase().includes(searchQuery.toLowerCase());\n      const matchType = variableTypeFilter === 'All' || n.variableType === variableTypeFilter;\n      return matchKey && matchSearch && matchType;\n    });\n  }, [nodes, activeKey, searchQuery, variableTypeFilter]);\n\n  // --- Flatten hierarchy for Virtuoso ---\n  const { groupCounts, groupHeaders, flattenedItems } = useMemo(() => {\n    const counts: number[] = [];\n    const headers: ListItem[] = [];\n    const items: ListItem[] = [];\n\n    if (filteredNodes.length === 0) return { groupCounts: counts, groupHeaders: headers, flattenedItems: items };\n\n    const groupsMap = new Map<string, TokenNode[]>();\n    filteredNodes.forEach(n => {\n      const g = n.groupName || 'Global';\n      if (!groupsMap.has(g)) groupsMap.set(g, []);\n      groupsMap.get(g)!.push(n);\n    });\n\n    const sortedGroups = Array.from(groupsMap.keys()).sort((a, b) => {\n      if (a === 'Global') return -1;\n      if (b === 'Global') return 1;\n      return a.localeCompare(b);\n    });\n\n    sortedGroups.forEach(groupName => {\n      const isCollapsed = collapsedGroups.has(groupName);\n      headers.push({ type: 'groupHeader', name: groupName, isCollapsed });\n\n      let currentGroupItemCount = 0;\n\n      if (!isCollapsed) {\n        const groupNodes = groupsMap.get(groupName)!;\n        const varsMap = new Map<string, TokenNode[]>();\n        groupNodes.forEach(n => {\n          if (!varsMap.has(n.variableName)) varsMap.set(n.variableName, []);\n          varsMap.get(n.variableName)!.push(n);\n        });\n\n        const sortedVars = Array.from(varsMap.keys()).sort();\n        sortedVars.forEach(varName => {\n          const vNodes = varsMap.get(varName)!;\n          const uniqueVarId = `${groupName}:${varName}`;\n          const isVarExpanded = expandedVars.has(uniqueVarId);\n\n          // Calculate selection state for the variable group\n          const selectedInGroup = vNodes.filter(n => selectedNodeIds.has(`${n.id}::${varName}::${groupName}`)).length;\n          const isChecked = selectedInGroup === vNodes.length && vNodes.length > 0;\n          const isIndeterminate = selectedInGroup > 0 && selectedInGroup < vNodes.length;\n\n            items.push({\n              type: 'variableRow',\n              id: uniqueVarId,\n              name: varName,\n              count: vNodes.length,\n              isExpanded: isVarExpanded,\n              variableType: vNodes[0].variableType || 'UNKNOWN',\n              value: vNodes[0].value,\n              isChecked,\n              isIndeterminate,\n            });\n          currentGroupItemCount++;\n\n          if (isVarExpanded) {\n            const framesMap = new Map<string, TokenNode[]>();\n            vNodes.forEach(n => {\n              const f = `${n.pageName || 'Unknown Page'} / ${n.frameName || 'Canvas'}`;\n              if (!framesMap.has(f)) framesMap.set(f, []);\n              framesMap.get(f)!.push(n);\n            });\n\n            const sortedFrames = Array.from(framesMap.keys()).sort();\n            sortedFrames.forEach(frameName => {\n              items.push({ type: 'frameHeader', name: frameName });\n              currentGroupItemCount++;\n\n              const fNodes = framesMap.get(frameName)!;\n              fNodes.forEach(n => {\n                items.push({\n                  type: 'nodeRow',\n                  node: n,\n                  isChecked: selectedNodeIds.has(`${n.id}::${varName}::${groupName}`),\n                });\n                currentGroupItemCount++;\n              });\n            });\n          }\n        });\n      }\n\n      counts.push(currentGroupItemCount);\n    });\n\n    return { groupCounts: counts, groupHeaders: headers, flattenedItems: items };\n  }, [filteredNodes, expandedVars, collapsedGroups, selectedNodeIds]);\n\n  const activeOverlayVariable = useMemo(() => {\n    if (!flattenedItems || flattenedItems.length === 0) return null;\n    let activeVar: ListItem | null = null;\n    for (let i = topIndex; i >= 0; i--) {\n      const item = flattenedItems[i];\n      if (item && item.type === 'variableRow') {\n        activeVar = item;\n        break;\n      }\n    }\n    return activeVar;\n  }, [topIndex, flattenedItems]);\n\n  // --- Handlers ---\n  const toggleGroupCollapsed = (groupName: string) => {\n    setCollapsedGroups(prev => {\n      const next = new Set(prev);\n      if (next.has(groupName)) next.delete(groupName);\n      else next.add(groupName);\n      return next;\n    });\n  };\n\n  const toggleVariableExpanded = (varName: string) => {\n    setExpandedVars(prev => {\n      const next = new Set(prev);\n      if (next.has(varName)) next.delete(varName);\n      else next.add(varName);\n      return next;\n    });\n  };\n\n  const toggleVariableSelection = (uniqueId: string, checked: boolean) => {\n    const colonIndex = uniqueId.indexOf(':');\n    const groupName = uniqueId.slice(0, colonIndex);\n    const varName = uniqueId.slice(colonIndex + 1);\n    \n    const varNodes = filteredNodes.filter(n => n.groupName === groupName && n.variableName === varName);\n    const varNodeSelectionKeys = varNodes.map(n => `${n.id}::${varName}::${groupName}`);\n    setSelectedNodeIds(prev => {\n      const next = new Set(prev);\n      if (checked) {\n        varNodeSelectionKeys.forEach(k => next.add(k));\n      } else {\n        varNodeSelectionKeys.forEach(k => next.delete(k));\n      }\n      return next;\n    });\n  };\n\n  const toggleNodeSelection = (compositeKey: string, checked: boolean) => {\n    setSelectedNodeIds(prev => {\n      const next = new Set(prev);\n      if (checked) next.add(compositeKey);\n      else next.delete(compositeKey);\n      return next;\n    });\n  };\n\n  const handleZoom = (id: string) => {\n    parent.postMessage({ pluginMessage: { type: 'zoom-to-node', payload: { id } } }, '*');\n  };\n\n  // Batch actions\n  const handleReplaceClick = useCallback(() => {\n    // Step 1: request variables list from backend\n    setIsLoadingVars(true);\n    setAvailableVariables([]);\n    setIsPopoverOpen(true);\n    parent.postMessage({ pluginMessage: { type: 'get-all-variables' } }, '*');\n  }, []);\n\n  const handleVariableSelected = useCallback((variable: AvailableVariable) => {\n    // Mark selected nodes as pending\n    const keys = Array.from(selectedNodeIds);\n    const newStatus = new Map(nodeStatus);\n    keys.forEach(k => newStatus.set(k, 'pending'));\n    setNodeStatus(newStatus);\n\n    // Deduplicate node payload\n    const uniqueNodeIds = Array.from(new Set(keys.map(k => k.split('::')[0])));\n    const nodePayloads = uniqueNodeIds.map(nodeId => {\n      const node = nodes.find(n => n.id === nodeId);\n      return { id: nodeId, boundPropertyKeys: node?.boundPropertyKeys ?? [] };\n    });\n\n    parent.postMessage({\n      pluginMessage: {\n        type: 'batch-replace',\n        payload: {\n          nodes: nodePayloads,\n          targetVariableId: variable.id,\n        },\n      },\n    }, '*');\n  }, [selectedNodeIds, nodeStatus, nodes]);\n\n  const handleDetach = useCallback(() => {\n    const keys = Array.from(selectedNodeIds);\n    const newStatus = new Map(nodeStatus);\n    keys.forEach(k => newStatus.set(k, 'pending'));\n    setNodeStatus(newStatus);\n\n    const uniqueNodeIds = Array.from(new Set(keys.map(k => k.split('::')[0])));\n    const nodePayloads = uniqueNodeIds.map(nodeId => {\n      const node = nodes.find(n => n.id === nodeId);\n      return { id: nodeId, boundPropertyKeys: node?.boundPropertyKeys ?? [] };\n    });\n\n    parent.postMessage({\n      pluginMessage: {\n        type: 'batch-detach',\n        payload: { nodes: nodePayloads },\n      },\n    }, '*');\n  }, [selectedNodeIds, nodeStatus, nodes]);\n\n  const handleExport = () => {\n    setIsExporting(true);\n    // Simulate data extraction\n    const exportData = filteredNodes.map(n => ({\n      name: n.name,\n      variable: n.variableName,\n      value: n.value\n    }));\n    \n    parent.postMessage({\n      pluginMessage: {\n        type: 'export-json',\n        payload: JSON.stringify(exportData, null, 2)\n      }\n    }, '*');\n    \n    setTimeout(() => setIsExporting(false), 1000);\n  };\n\n  const hasSelection = selectedNodeIds.size > 0;\n\n\n  return (\n    <div className=\"w-full h-full flex flex-col bg-[var(--figma-color-bg)] text-[var(--figma-color-text)] overflow-hidden\">\n\n      {/* Top Header */}\n      {/* Top Header */}\n      <div className=\"flex flex-col bg-[var(--figma-color-bg)] text-[var(--figma-color-text)]\">\n        {/* Row 1: Nav Bar */}\n        <div className=\"flex items-center justify-between p-2\">\n          <Button variant=\"secondary\" size=\"sm\" onClick={onBack} className=\"px-2 border-transparent shadow-none hover:bg-[var(--figma-color-bg-hover)] h-6\">\n            <ArrowLeft className=\"w-3.5 h-3.5 mr-1\" /> Back\n          </Button>\n        </div>\n        \n        {/* Row 2: Type Filter with Top and Bottom Borders */}\n        <div className=\"flex items-center gap-1 overflow-x-auto hide-scrollbar px-2 py-2 border-y border-[var(--figma-color-border)] bg-[var(--figma-color-bg-secondary)]/30\">\n          {(['All', 'COLOR', 'FLOAT', 'STRING', 'BOOLEAN'] as TypeFilter[]).map(type => (\n            <button\n              key={type}\n              onClick={() => setVariableTypeFilter(type)}\n              className={cn(\n                \"px-2 py-1 text-[10px] font-medium rounded-full whitespace-nowrap transition-colors border\",\n                variableTypeFilter === type\n                  ? \"bg-[#0d99ff]/10 text-[#0d99ff] border-[#0d99ff]\"\n                  : \"bg-transparent text-[var(--figma-color-text-secondary)] border-transparent hover:bg-[var(--figma-color-bg-hover)]\"\n              )}\n            >\n              {type === 'FLOAT' ? 'Number' : type === 'COLOR' ? 'Color' : type === 'STRING' ? 'String' : type === 'BOOLEAN' ? 'Boolean' : 'All'}\n            </button>\n          ))}\n        </div>\n\n        {/* Row 3: Search & Actions Toolbar */}\n        <div className=\"flex items-center gap-1.5 p-2 border-b border-[var(--figma-color-border)] relative\">\n          {/* Replace Popover anchored here */}\n          <ReplacePopover\n            isOpen={isPopoverOpen}\n            isLoading={isLoadingVars}\n            variables={availableVariables}\n            onSelect={handleVariableSelected}\n            onClose={() => setIsPopoverOpen(false)}\n            position=\"bottom\"\n          />\n\n          <div className=\"relative flex-1 min-w-0\">\n            <Search className=\"w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 opacity-40\" />\n            <input\n              type=\"text\"\n              className=\"w-full h-7 pl-7 pr-2 text-[11px] bg-transparent border border-[var(--figma-color-border)] rounded focus:outline-none focus:border-[#0d99ff] transition-colors placeholder:text-[var(--figma-color-text-tertiary)]\"\n              placeholder=\"Search tokens...\"\n              value={searchQuery}\n              onChange={e => setSearchQuery(e.target.value)}\n            />\n          </div>\n\n          <div className=\"flex items-center gap-1 shrink-0\">\n            <Button \n              variant=\"secondary\" \n              size=\"sm\" \n              onClick={handleReplaceClick} \n              className={cn(\n                \"px-2 border-[var(--figma-color-border)] shadow-none h-7 font-medium\",\n                !hasSelection && \"opacity-50 grayscale-[0.5]\"\n              )}\n              disabled={!hasSelection}\n            >\n              <span className=\"text-[11px]\">Replace</span>\n            </Button>\n\n            <Button \n              variant=\"secondary\" \n              size=\"sm\" \n              onClick={handleDetach} \n              className={cn(\n                \"px-2 border-[var(--figma-color-border)] shadow-none h-7 font-medium\",\n                !hasSelection && \"opacity-50 grayscale-[0.5]\"\n              )}\n              disabled={!hasSelection}\n            >\n              <span className=\"text-[11px]\">Detach</span>\n            </Button>\n\n            <Button \n              variant=\"secondary\" \n              size=\"sm\" \n              onClick={onRefresh} \n              className=\"px-2 border-[var(--figma-color-border)] shadow-none hover:bg-[var(--figma-color-bg-hover)] h-7 shrink-0\"\n              disabled={isRefreshing}\n              title=\"Refresh\"\n            >\n              {isRefreshing\n                ? <RefreshCw className=\"w-3 h-3 animate-spin\" />\n                : <RefreshCw className=\"w-3 h-3\" />}\n            </Button>\n\n            <Button \n              variant=\"secondary\" \n              size=\"sm\" \n              onClick={handleExport} \n              className=\"px-2 border-[var(--figma-color-border)] shadow-none h-7\"\n              disabled={isExporting}\n            >\n              {isExporting ? <RefreshCw className=\"w-3 h-3 animate-spin\" /> : <Download className=\"w-3 h-3\" />}\n            </Button>\n          </div>\n        </div>\n      </div>\n\n      <div className=\"flex-1 flex overflow-hidden\">\n        {/* Left Sidebar */}\n        <div className=\"w-[130px] overflow-y-auto border-r border-[var(--figma-color-border)] bg-[var(--figma-color-bg-secondary)] flex flex-col shrink-0 flex-nowrap hide-scrollbar p-1\">\n          {libraryGroups.map(group => {\n            // Check visibility of each collection in this group\n            const collectionsWithVisibility = group.collections.map(c => {\n              const itemKey = `${group.libraryName}:${c}`;\n              const availableTypes = collectionsVisibility.get(itemKey) || new Set();\n              const isVisible = variableTypeFilter === 'All' || availableTypes.has(variableTypeFilter);\n              return { name: c, isVisible, itemKey };\n            });\n\n            // If ALL collections in this group are hidden, hide the group header too\n            const isGroupVisible = collectionsWithVisibility.some(c => c.isVisible);\n\n            return (\n              <div \n                key={group.libraryName} \n                className={cn(\n                  \"flex flex-col transition-all duration-300 ease-in-out origin-top\",\n                  isGroupVisible ? \"opacity-100 max-h-[1000px] mb-2\" : \"opacity-0 max-h-0 overflow-hidden pointer-events-none mb-0\"\n                )}\n              >\n                <div className=\"px-2 py-1 text-[9px] font-bold text-[var(--figma-color-text-tertiary)] uppercase tracking-wider truncate\" title={group.libraryName}>\n                  {group.libraryName}\n                </div>\n                <div className=\"flex flex-col\">\n                  {collectionsWithVisibility.map(coll => {\n                    const isVisible = coll.isVisible;\n                    const c = coll.name;\n                    const itemKey = coll.itemKey;\n                    const isSelected = activeKey === itemKey;\n                    const isMissing = group.libraryName === 'Missing' || c === 'Missing';\n                    const isHardcoded = group.libraryName === 'Hardcoded' || c === 'Hardcoded';\n                    const isUnlinked = group.libraryName === 'Unlinked Library';\n\n                    return (\n                      <button\n                        key={c}\n                        onClick={() => setSelectedKey(itemKey)}\n                        className={cn(\n                          \"text-[10px] text-left font-medium px-2 rounded truncate transition-all duration-200 flex items-center justify-between group\",\n                          isVisible \n                            ? \"opacity-100 max-h-12 py-1.5 mb-0.5\" \n                            : \"opacity-0 max-h-0 py-0 mb-0 overflow-hidden pointer-events-none\",\n                          isSelected\n                            ? \"bg-[#0d99ff] text-white shadow-sm hover:bg-[#0084e5]\"\n                            : isMissing\n                            ? \"text-[#f24822] hover:bg-[#f24822]/10 hover:text-[#f24822]\"\n                            : isHardcoded || isUnlinked\n                            ? \"text-[var(--figma-color-text-tertiary)] hover:bg-[var(--figma-color-bg-hover)] hover:text-[var(--figma-color-text)] italic\"\n                            : \"text-[var(--figma-color-text-secondary)] hover:bg-[var(--figma-color-bg-hover)] hover:text-[var(--figma-color-text)]\"\n                        )}\n                        title={c}\n                      >\n                        <span className=\"truncate\">{c}</span>\n                        {isMissing && <CircleHelp className={cn(\"w-3 h-3 shrink-0 transition-opacity\", isSelected ? \"text-white opacity-100\" : \"text-[#f24822] opacity-80 group-hover:opacity-100\")} />}\n                        {isHardcoded && <Unlink className={cn(\"w-3 h-3 shrink-0 transition-opacity\", isSelected ? \"text-white opacity-100\" : \"text-[var(--figma-color-text-tertiary)] opacity-80 group-hover:opacity-100\")} />}\n                      </button>\n                    );\n                  })}\n                </div>\n              </div>\n            );\n          })}\n        </div>\n\n        {/* Right Main Content */}\n        <div className=\"flex-1 relative overflow-hidden bg-[var(--figma-color-bg)]\">\n          {groupHeaders.length === 0 ? (\n            <div className=\"w-full h-full flex items-center justify-center p-4 text-center text-xs opacity-50\">\n              No instances match.\n            </div>\n          ) : (\n            <GroupedVirtuoso\n              groupCounts={groupCounts}\n              rangeChanged={(range) => setTopIndex(range.startIndex)}\n              className=\"w-full h-full scroll-smooth\"\n              groupContent={(index) => {\n                const item = groupHeaders[index];\n                if (item?.type === 'groupHeader') {\n                  return (\n                    <div\n                      className=\"px-3 h-[28px] bg-[var(--figma-color-bg-secondary)] border-y border-[var(--figma-color-border)] text-[10px] font-bold text-[var(--figma-color-text-secondary)] uppercase tracking-wider flex items-center gap-1 cursor-pointer hover:bg-[var(--figma-color-bg-hover)]\"\n                      onClick={() => toggleGroupCollapsed(item.name)}\n                    >\n                      {item.isCollapsed\n                        ? <ChevronRight className=\"w-3.5 h-3.5 opacity-50 shrink-0\" />\n                        : <ChevronDown className=\"w-3.5 h-3.5 opacity-50 shrink-0\" />}\n                      {item.name}\n                    </div>\n                  );\n                }\n                return null;\n              }}\n              itemContent={(_index) => {\n                const item = flattenedItems[_index];\n\n                // Variable Row\n                if (item.type === 'variableRow') {\n                  return (\n                    <div\n                      className=\"flex items-center justify-between px-3 h-[32px] border-b border-[var(--figma-color-border)] hover:bg-[var(--figma-color-bg-hover)] cursor-pointer group bg-[var(--figma-color-bg)]\"\n                      onClick={() => toggleVariableExpanded(item.id)}\n                    >\n                      <div className=\"flex items-center gap-2 overflow-hidden flex-1\">\n                        <div onClick={e => e.stopPropagation()} className=\"shrink-0\">\n                          <Checkbox\n                            label=\"\"\n                            checked={item.isChecked}\n                            indeterminate={item.isIndeterminate}\n                            onChange={e => toggleVariableSelection(item.id, e.target.checked)}\n                          />\n                        </div>\n\n                        {item.isExpanded\n                          ? <ChevronDown className=\"w-3.5 h-3.5 opacity-50 shrink-0\" />\n                          : <ChevronRight className=\"w-3.5 h-3.5 opacity-50 shrink-0\" />}\n                        \n                        <div className=\"flex items-center gap-1.5 overflow-hidden\">\n                          <TokenValueDisplay vType={item.variableType} value={item.value} />\n                          <VariableTypeIcon vType={item.variableType} />\n                          <span className=\"text-xs font-semibold truncate\">{item.name}</span>\n                        </div>\n                      </div>\n                      <span className=\"text-[10px] text-[var(--figma-color-text-secondary)] bg-[var(--figma-color-bg-secondary)] px-1.5 py-0.5 rounded-full shrink-0 group-hover:bg-[#0d99ff] group-hover:text-white transition-colors\">\n                        {item.count}\n                      </span>\n                    </div>\n                  );\n                }\n\n                // Frame Header\n                if (item.type === 'frameHeader') {\n                  return (\n                    <div className=\"pl-8 pr-3 py-1.5 bg-[var(--figma-color-bg)] text-[10px] font-medium text-[var(--figma-color-text-tertiary)] flex items-center gap-1 opacity-80 mt-1\">\n                      <div className=\"w-1 h-1 rounded-full bg-current opacity-50\" />\n                      {item.name}\n                    </div>\n                  );\n                }\n\n                // Node Row\n                if (item.type === 'nodeRow') {\n                  const n = item.node;\n                  const isChecked = item.isChecked;\n                  const compositeKey = `${n.id}::${n.variableName}::${n.groupName}`;\n                  const status = nodeStatus.get(compositeKey) ?? 'idle';\n                  const errMsg = nodeErrors.get(compositeKey);\n                  const isFading = fadingIds.has(compositeKey);\n\n                  return (\n                    <div\n                      className={cn(\n                        \"group flex items-center gap-2 pl-8 pr-3 py-1.5 cursor-pointer transition-all duration-300 bg-[var(--figma-color-bg)]\",\n                        status === 'success' && \"bg-green-500/10\",\n                        status === 'error' && \"bg-red-500/10\",\n                        status === 'pending' && \"opacity-50 pointer-events-none\",\n                        isFading && \"opacity-0\",\n                        (n.isLocked || n.isHidden) && status === 'idle' && \"opacity-60\",\n                        \"hover:bg-[var(--figma-color-bg-hover)]\",\n                      )}\n                      onClick={() => handleZoom(n.id)}\n                      title={errMsg}\n                    >\n                      <div onClick={e => e.stopPropagation()} className=\"shrink-0 pt-0.5\">\n                        <Checkbox\n                          label=\"\"\n                          checked={isChecked}\n                          onChange={e => toggleNodeSelection(compositeKey, e.target.checked)}\n                          disabled={status === 'pending'}\n                        />\n                      </div>\n                      <div className=\"flex-1 min-w-0 flex items-center justify-between\">\n                        <div className=\"flex items-center gap-1.5 truncate\">\n                          {n.type === 'COMPONENT' && <Component className=\"w-3 h-3 text-purple-500 shrink-0\" />}\n                          {n.type === 'INSTANCE' && <Box className=\"w-3 h-3 text-purple-400 shrink-0\" />}\n                          {n.type === 'TEXT' && <Type className=\"w-3 h-3 text-blue-400 shrink-0\" />}\n                          {(n.type === 'RECTANGLE' || n.type === 'ELLIPSE' || n.type === 'POLYGON' || n.type === 'STAR' || n.type === 'VECTOR') && <Square className=\"w-3 h-3 text-[var(--figma-color-icon-secondary)] shrink-0\" />}\n                          {(n.type === 'FRAME' || n.type === 'GROUP' || n.type === 'SECTION') && <Frame className=\"w-3 h-3 text-[var(--figma-color-icon-secondary)] shrink-0\" />}\n                          <span className={cn(\n                            \"text-[11px] truncate leading-snug group-hover:text-[#0d99ff] transition-colors\",\n                            status === 'error' && \"text-red-500 group-hover:text-red-400\",\n                          )}>\n                            {n.name}\n                          </span>\n                        </div>\n\n                        <div className=\"flex items-center gap-1.5 shrink-0 pl-2\">\n                          {/* Status indicators */}\n                          {status === 'success' && <CheckCircle2 className=\"w-3 h-3 text-green-500\" />}\n                          {status === 'error' && (\n                            <span title={errMsg}>\n                              <XCircle className=\"w-3 h-3 text-red-500\" />\n                            </span>\n                          )}\n\n                          {/* Idle state icons */}\n                          {status === 'idle' && n.isLocked && <Lock className=\"w-3 h-3 text-red-400\" />}\n                          {status === 'idle' && n.isHidden && <EyeOff className=\"w-3 h-3 text-gray-400\" />}\n\n                          {/* Hover Target Icon */}\n                          {status === 'idle' && (\n                            <button className=\"opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all text-[#0d99ff] hover:bg-[#0d99ff] hover:text-white\">\n                              <Target className=\"w-3 h-3\" />\n                            </button>\n                          )}\n                        </div>\n                      </div>\n                    </div>\n                  );\n                }\n\n                return null;\n              }}\n            />\n          )}\n\n          {/* Sticky Variable Header Overlay */}\n          {activeOverlayVariable && activeOverlayVariable.type === 'variableRow' && activeOverlayVariable.isExpanded && (\n            <div className=\"absolute top-[28px] left-0 right-0 z-[15] pointer-events-auto bg-[var(--figma-color-bg)] shadow-[0_1px_3px_rgba(0,0,0,0.05)]\">\n              <div\n                className=\"flex items-center justify-between px-3 h-[32px] border-b border-[var(--figma-color-border)] cursor-pointer group hover:bg-[var(--figma-color-bg-hover)]\"\n                onClick={() => toggleVariableExpanded(activeOverlayVariable.id)}\n              >\n                <div className=\"flex items-center gap-2 overflow-hidden flex-1\">\n                  <div onClick={e => e.stopPropagation()} className=\"shrink-0\">\n                    <Checkbox\n                      label=\"\"\n                      checked={activeOverlayVariable.isChecked}\n                      indeterminate={activeOverlayVariable.isIndeterminate}\n                      onChange={e => toggleVariableSelection(activeOverlayVariable.id, e.target.checked)}\n                    />\n                  </div>\n                  <ChevronDown className=\"w-3.5 h-3.5 opacity-50 shrink-0\" />\n                  <div className=\"flex items-center gap-1.5 overflow-hidden\">\n                    <TokenValueDisplay vType={activeOverlayVariable.variableType} value={activeOverlayVariable.value} />\n                    <VariableTypeIcon vType={activeOverlayVariable.variableType} />\n                    <span className=\"text-xs font-semibold truncate\">{activeOverlayVariable.name}</span>\n                  </div>\n                </div>\n                <span className=\"text-[10px] text-[var(--figma-color-text-secondary)] bg-[var(--figma-color-bg-secondary)] px-1.5 py-0.5 rounded-full shrink-0 group-hover:bg-[#0d99ff] group-hover:text-white transition-colors\">\n                  {activeOverlayVariable.count}\n                </span>\n              </div>\n            </div>\n          )}\n        </div>\n      </div>\n\n    </div>\n  );\n}\n"}, {"name": "design_prd.md", "type": "text", "content": "# \u4ea4\u4e92\u8bf4\u660e\u6587\u6863 (Interaction PRD) - Tokens in Page\n\n> \u65e8\u5728\u4e3a\u7814\u53d1\u548c\u6d4b\u8bd5\u8865\u5145\u89c6\u89c9\u9a8c\u6536\u6807\u51c6\u4e0e\u4ea4\u4e92\u8fb9\u754c\uff08\u72b6\u6001\u3001\u5f02\u5e38\u6d41\u8f6c\u3001\u9f20\u6807/\u952e\u76d8\u884c\u4e3a\uff09\u3002\u672c\u6587\u6863\u7d27\u5bc6\u8d34\u5408\u60a8\u5df2\u6709\u7684 Figma \u8bbe\u8ba1\u539f\u578b\uff0c\u5e76\u9488\u5bf9\u6b64\u524d PRD \u4e2d\u786e\u7acb\u7684\u201c\u6e05\u7406 Unlinked\u201d\u3001\u201cMain Component \u6eaf\u6e90\u201d\u7b49\u8fdb\u9636\u5ba1\u67e5\u76ee\u6807\u8fdb\u884c\u4e86\u4ea4\u4e92\u903b\u8f91\u8865\u5168\u3002\n\n## 1. \u5168\u5c40\u89c6\u53e3\u53ca\u6846\u67b6\u89c4\u8303\n- **\u9ed8\u8ba4\u89c6\u53e3 (Viewport)**: `Width 400px`, `Height 480px` (\u5efa\u8bae\u5f00\u542f\u62d6\u62fd Resizing \u6743\u9650\uff0c\u53d7\u9650\u4e8e\u5217\u8868\u957f\u6570\u636e\u7684\u5305\u5bb9\u6027\uff0c\u6700\u5c0f\u9ad8\u5ea6\u9650\u5b9a\u5728 `300px`\uff0c\u6700\u5927\u5bbd/\u9ad8\u4e0d\u8bbe\u9650\u4ee5\u4fbf\u63d0\u4f9b\u66f4\u597d\u7684\u5217\u8868\u5448\u73b0)\u3002\n- **\u6df1\u8272\u6a21\u5f0f (Dark Mode)**: \u63d2\u4ef6\u5168\u7cfb\u4f7f\u7528 CSS \u539f\u751f\u5a92\u4f53\u67e5\u8be2\u76f4\u63a5\u8ddf\u968f\u5bbf\u4e3b Figma UI \u7684\u4eae\u6697\u8272\u504f\u597d\uff0c\u4e0d\u63d0\u4f9b\u5185\u90e8\u624b\u52a8\u5207\u6362\u5f00\u5173\u4ee5\u4fdd\u6301\u539f\u751f\u6c89\u6d78\u611f\u3002\n\n## 2. \u6838\u5fc3\u9875\u9762\u6d41\u8f6c (Page Workflows)\n\n### 2.1 \u9996\u5c4f\uff1a\u5165\u53e3\u4e0e\u626b\u63cf\u914d\u7f6e\u9875 (Setup & Filter)\n> **\u4ea4\u4e92\u7ec4\u4ef6\u4e0e\u5bf9\u9f50**\uff1a\u4e3a\u63d0\u5347\u70b9\u51fb\u6548\u7387\uff0cType (\u5c5e\u6027)\u3001Source (\u6765\u6e90) \u53ca Layer Types (\u5c42\u7ea7) \u7684\u591a\u9009\u4ea4\u4e92\u7edf\u4e00\u91c7\u7528 **`ToggleChip` (\u80f6\u56ca\u5207\u6362\u6309\u94ae)** \u66ff\u4ee3\u4f20\u7edf\u7684 Checkbox\u3002\n\n- **\u9875\u9762\u7ed3\u6784**\uff1a\u4f5c\u4e3a\u63d2\u4ef6\u5524\u8d77\u540e\u7684\u9ed8\u8ba4\u5c55\u793a\u9875\uff0c\u5b83\u627f\u8f7d\u5168\u90e8\u8fc7\u6ee4\u7f51\u3002\n  - **Type (\u5c5e\u6027\u8fc7\u6ee4)**: \u4f7f\u7528 Select \u4e0b\u62c9\u83dc\u5355\u63a7\u4ef6\u5c01\u88c5\uff08\u5305\u542b All, Variables, Style\uff09\uff0c\u7cbe\u7b80\u4e3b\u5c4f\u7a7a\u95f4\u3002\n  - **Source (\u6765\u6e90\u8fc7\u6ee4)**: \u5141\u8bb8\u7ec4\u5408\u8fc7\u6ee4 `Local`, `Linked`, `Unlinked` \u4ee5\u53ca\u5df2\u88ab\u5f7b\u5e95\u79fb\u9664\u9020\u6210\u7684 **`Missing`** \u5f15\u7528\u3002`Missing` \u6807\u7b7e\u53d6\u6d88\u8b66\u793a\u7ea2\u6587\u6848\u4ee5\u9632\u5f15\u53d1\u4e0d\u5fc5\u8981\u7684\u8bef\u5bfc\u7126\u8651\u3002\n  - **\u6279\u91cf\u9009\u62e9 (Select/Deselect All)**\uff1aSource / Layer Types \u9009\u9879\u7ec4\u53f3\u4e0a\u4fa7\u63d0\u4f9b\u663e\u5f0f\u7684 `Select All` \u6309\u94ae\u3002\n  - **\u7ec4\u4ef6\u89c6\u89c9\u964d\u566a**\uff1a\u9009\u4e2d\u7684 `ToggleChip` \u9632\u649e\u8272\u5904\u7406\uff0c\u5f03\u7528\u5927\u9762\u79ef Fill \u8272\u5757\uff0c\u8f6c\u7528\u8f7b\u76c8\u7684\u54c1\u724c\u8272\u8fb9\u6846\u4e0e\u6d45\u900f\u660e\u5e95\u8272\uff0c\u4e0e\u5e95\u90e8\u7684 `Scan` \u4e3b\u6309\u94ae\u62c9\u5f00\u89c6\u89c9\u5c42\u7ea7\u3002\n  - **Layer Type (\u901a\u900f\u5339\u914d\u5224\u5b9a)**: \u5305\u542b `All`, `Component`, `Instance`, `Text`, `Shape`, `Frame` \u7b49\u9009\u9879\u3002\u5404\u9009\u9879\u56fa\u5b9a\u7ef4\u62a4\u4e25\u6574\u7684 **3-column \u7f51\u683c\u5e03\u5c40**\uff0c\u4fdd\u969c\u5217\u8868\u5bf9\u9f50\u7f8e\u611f\u3002**\u6ce8\u610f\u5339\u914d\u964d\u7ea7\u903b\u8f91**\uff1a\u53ea\u8981\u7ec4\u4ef6/\u5bb9\u5668\u7684\u4e0a\u6e38\u547d\u4e2d\u4e86\u7528\u6237\u7684\u52fe\u9009\u9879\uff0c\u8be5\u7ec4\u4ef6\u6216\u5bb9\u5668\u5185\u5305\u88f9\u7684\u6240\u6709\u6df1\u5c42\u5b50\u4ee3\u8282\u70b9\u5747\u88ab\u89c6\u4e3a\u201c\u8fde\u5e26\u547d\u4e2d\u201d\u3002\u4fdd\u8bc1\u7ed3\u6784\u5316\u67e5\u8be2\u65f6\u4e0d\u4f1a\u56e0\u4e3a\u5b50\u56fe\u5c42\u7c7b\u578b\u4e0d\u5bf9\u800c\u6f0f\u626b\u5176\u4e0a\u7ed1\u5b9a\u7684 token\u3002\n  - **\u72b6\u6001\u6301\u4e45\u5316 (State Persistence)**: \u4ece\u6b21\u7ea7\u9875\u9762 (Inventory) \u9000\u56de\u9996\u5c4f\u65f6\uff0c\u4fdd\u7559\u5e76\u7ee7\u627f\u4e0a\u4e00\u6b21\u6210\u529f\u53d1\u8d77\u7684\u626b\u63cf\u53c2\u6570\u52fe\u9009\u9879\u3002\n- **Primary Action (\u626b\u63cf\u6267\u884c)**:\n  - \u70b9\u51fb `Scan` \u6309\u94ae\u540e\uff0c\u6309\u94ae\u81ea\u8eab\u6587\u6848\u6216\u56fe\u6807\u9700\u5207\u6362\u4e3a Loading \u6001\uff08\u5982 Spinner\uff09\uff0c\u6b64\u523b\u7ed9\u5168\u5c4f\u52a0\u4e0a\u4e00\u4e2a\u9690\u5f62\u7684 Overlay \u4ee5\u62e6\u622a\u4efb\u4f55\u5bf9\u7b5b\u9009\u5668\u7684\u6b21\u751f\u70b9\u51fb\u4fee\u6539\u3002\n  - **\u4e2d\u6b62\u626b\u63cf (Cancel Scan)**\uff1a\u5728 Loading \u72b6\u6001\u65c1\u8fb9\u6216\u4e0b\u65b9\u63d0\u4f9b\u4e00\u4e2a\u660e\u786e\u7684 `Cancel Scan` \u6309\u94ae\u3002\u82e5\u626b\u63cf\u8017\u65f6\u8fc7\u957f\uff0c\u7528\u6237\u53ef\u968f\u65f6\u4e2d\u6b62\uff0c\u91ca\u653e\u7ebf\u7a0b\u963b\u65ad\u5e76\u91cd\u7f6e\u754c\u9762\u3002\n\n### 2.2 \u8fc7\u6e21\u6001\u4e0e\u7a7a\u6570\u636e (Empty States)\n- **\u626b\u63cf\u7ed3\u679c\u4e3a\u7a7a\uff08\u8fd4\u56de 0\uff09**\uff1a\u7559\u5728\u5f53\u524d\u9996\u5c4f\uff0c\u5728 `Scan` \u6309\u94ae\u4e0b\u65b9\u6216\u9876\u90e8\u663e\u793a\u4e00\u4e2a\u9192\u76ee\u7684\u8b66\u544a Toast\uff1a\u201c\u5f53\u524d\u8fc7\u6ee4\u6761\u4ef6\u4e0b\u672a\u53d1\u73b0\u7ed3\u679c\uff0c\u8bf7\u8c03\u6574\u7b5b\u9009\u6761\u4ef6\u540e\u91cd\u8bd5\u3002\u201d\n- **\u626b\u63cf\u6210\u529f\u4e14\u6709\u6570\u636e**\uff1a\u5e73\u6ed1\u8df3\u8f6c\uff08\u63a8\u5165\u52a8\u753b Slide-in \u6216\u76f4\u63a5\u95ea\u5207\uff09\u81f3\u4e8c\u7ea7\u201c\u8d44\u4ea7\u5217\u8868\u9875\u201d\u3002\n  - **\u8fd4\u56de\u4e0e\u91cd\u7f6e**\uff1a\u9700\u5728\u4e8c\u7ea7\u5217\u8868\u9876\u90e8\u5e38\u9a7b `< Back to Filter` \u6309\u94ae\u6216\u6298\u53e0\u62e6\uff0c\u5141\u8bb8\u7528\u6237\u968f\u65f6\u9000\u56de\u9996\u5c4f\u91cd\u65b0\u9009\u62e9\u8303\u56f4\u3002\n\n## 3. \u4e8c\u7ea7\u4e0e\u4e09\u7ea7\uff1a\u5ba1\u67e5\u4e0e\u8282\u70b9\u5f52\u5c5e (Inventory & Node Details)\n\n### 3.1 \u4e8c\u7ea7\uff1a\u53d8\u91cf\u6c47\u603b\u5217\u8868 (Inventory List)\n- **\u5168\u5c40\u64cd\u4f5c\u533a (Global Actions)**\uff1a\n  - **\u5237\u65b0\u673a\u5236\u4e0e\u52a8\u6001\u76d1\u542c**\uff1a\n    - \u5217\u8868\u9876\u90e8\u63d0\u4f9b\u5e26 `Spin` \u8f6c\u5708\u52a8\u6548\u53cd\u9988\u7684 `\ud83d\udd04 Refresh` \u6309\u94ae\u3002\n    - **\u94a9\u5b50\u9759\u9ed8\u8054\u52a8\u4e0e\u72b6\u6001\u9501\u5b9a**\uff1a\u53ea\u8981\u5f53\u524d Scope \u4e3a `Selection` \u6216 `Current Page`\uff0c\u5f53 Figma \u629b\u51fa\u5bf9\u5e94\u7684 `selectionchange` \u6216 `currentpagechange` \u4e8b\u4ef6\u65f6\uff0c\u63d2\u4ef6\u9690\u5f0f\u89e6\u53d1\u4e00\u6b21\u540e\u53f0\u7ea7\u5237\u65b0\u4ee5\u4fdd\u6301\u6570\u636e\u9c9c\u6d3b\u5ea6\u3002**\u4ea4\u4e92\u51b2\u7a81\u8fc7\u6ee4**\uff1a\u7cfb\u7edf\u5fc5\u987b\u80fd\u8bc6\u522b\u7531\u63d2\u4ef6\u53d1\u8d77\u7684 `zoom-to-node` \u5b9a\u4f4d\u64cd\u4f5c\uff0c\u5e76\u5728\u6b64\u65f6**\u9501\u5b9a\u5217\u8868\u72b6\u6001**\uff0c\u907f\u514d\u56e0\u9009\u4e2d\u9879\u53d8\u66f4\u800c\u89e6\u53d1\u975e\u9884\u671f\u7684\u5217\u8868\u91cd\u8f7d\uff0c\u786e\u4fdd\u7528\u6237\u7684\u5ba1\u8ba1\u6d41\u4e0d\u88ab\u4e2d\u65ad\u3002\n  - **\u5206\u7c7b\u8fc7\u6ee4 (Type Filter)**\uff1a\u641c\u7d22\u680f\u4e0a\u65b9\u72ec\u7acb\u4e00\u680f\u53ca\u5305\u542b\u4e0a\u5212\u7ebf\uff08Border-top\uff09\u4ee5\u533a\u5206\u9876\u90e8\u5bfc\u822a\uff0c\u63d0\u4f9b All, Color, Number, String, Boolean \u9009\u9879\uff0cAll \u4e3a\u9ed8\u8ba4\u9009\u4e2d\u9879\u3002\u5f53\u67d0\u4e00 Variable Group \u6216 Collection \u5728\u8fc7\u6ee4\u540e\u4e0d\u5305\u542b\u4efb\u4f55\u5339\u914d\u7c7b\u578b\u7684\u53d8\u91cf\u65f6\uff0c\u5176\u5bf9\u5e94\u7684\u6807\u9898\u884c\u81ea\u52a8\u9690\u85cf\uff0c\u4e0d\u5360\u636e\u754c\u9762\u7a7a\u95f4\u3002\n  - **\u53d8\u91cf\u641c\u7d22 (Keyword Search)**\uff1a\u63d0\u4f9b\u4e00\u4e2a\u641c\u7d22\u6846\uff08Search Variables by Keyword\uff09\uff0c\u5141\u8bb8\u6309\u540d\u79f0\u5b9e\u65f6\u68c0\u7d22\u4e0e\u8fc7\u6ee4\u5f53\u524d\u5217\u8868\u5185\u7684\u53d8\u91cf\u3002\u641c\u7d22\u8fc7\u6ee4\u4e0e\u5206\u7c7b\u8fc7\u6ee4\u6267\u884c \"AND\" (\u4e14) \u903b\u8f91\uff1a\u663e\u793a\u7ed3\u679c = (\u5339\u914d\u6240\u9009\u7c7b\u578b) && (\u5339\u914d\u641c\u7d22\u5173\u952e\u8bcd)\u3002\n  - **\u5bfc\u51fa\u529f\u80fd (Export)**\uff1a\u652f\u6301\u5c06\u5f53\u524d\u7b5b\u9009\u540e\u7684\u53d8\u91cf\u5217\u8868\u5bfc\u51fa\u4e3a JSON \u683c\u5f0f\u3002\n- **\u591a\u5c42\u7ea7\u5bfc\u822a\u5e03\u5c40**\uff1a\n  - **\u5de6\u4fa7\u8fb9\u680f (Sidebar)**\uff1a\u5c55\u793a Figma Variables/Styles \u7684 **Collections** \u7ed3\u6784\u3002**\u4fa7\u680f\u5bbd\u5ea6\u56fa\u5b9a\u4e3a `120px`**\uff0c\u4ee5\u5bb9\u7eb3\u8f83\u957f\u7684\u96c6\u5408\u540d\u79f0\uff0c\u9632\u6b62\u6587\u5b57\u622a\u65ad\u3002\n    - **\u6392\u5e8f\u4f18\u5148\u7ea7 (Priority)**\uff1a`Variable Collections` (\u6743\u91cd 1) > `Styles/Typography` (\u6743\u91cd 2) > `Missing` (\u6743\u91cd 3) > `Hardcoded` (\u6743\u91cd 4)\u3002\u786e\u4fdd\u5e38\u89c4\u8d44\u4ea7\u4f18\u5148\u663e\u793a\uff0c\u5f02\u5e38\u7c7b\u8d44\u4ea7\uff08Missing/Hardcode\uff09\u5e38\u9a7b\u5e95\u90e8\u3002**\u540c\u4f18\u5148\u7ea7\u9879\u5185\u90e8\u6309\u5b57\u6bcd\u5e8f (Alphabetical) \u6392\u5e8f**\u3002\n    - **\u89c6\u89c9\u5dee\u5f02\u5316 (Visual Styles)**: \n      - **Missing**\uff1a\u6587\u672c\u53ca\u56fe\u6807\u91c7\u7528\u7ea2\u8272 (`#f24822`)\uff0c\u914d\u4ee5 `CircleHelp` \u56fe\u6807\u3002\n      - **Hardcoded**\uff1a\u91c7\u7528\u8f85\u52a9\u8272 (`text-tertiary`)\uff0c\u914d\u4ee5 `Unlink` \u56fe\u6807\u3002\n      - **Active \u6001**\uff1a\u9009\u4e2d\u9879\u80cc\u666f\u5207\u6362\u4e3a\u54c1\u724c\u84dd (`#0d99ff`)\uff0c\u6587\u5b57\u4e0e\u56fe\u6807\u7edf\u4e00\u53cd\u767d\u3002\n  - **\u53f3\u4fa7\u4e3b\u4f53 (\u4e3b\u5185\u5bb9\u533a)**\uff1a\u91c7\u7528\u201c\u6298\u53e0\u9762\u677f\uff08Accordion\uff09\u201d\u5f62\u6001\uff0c\u6309 **Variable Group** \u540d\u79f0\u8fdb\u884c\u7eb5\u5411\u6392\u5217\u3002**Variable Group \u73b0\u5df2\u652f\u6301\u81ea\u7531\u5730\u5c55\u5f00\u4e0e\u6536\u8d77**\u3002\u5f53\u5c55\u5f00\u5185\u5c42\u540e\uff0c\u5916\u5c42\u7684 Variable Group \u4e0e Variable \u6807\u9898\u884c\u5747\u987b\u542f\u52a8 **Sticky to top\uff08\u5438\u9876\u4fdd\u62a4\uff09**\uff0c\u5373\u4fbf\u5728\u6df1\u5ea6\u6ed1\u52a8\u65f6\u4e5f\u6e05\u6670\u66b4\u9732\u51fa\u6240\u67e5\u770b\u5c42\u7ea7\u7684\u7236\u7ea7\u7ebf\u7d22\u3002\n- **Global \u9ed8\u8ba4\u7ec4\u515c\u5e95\u903b\u8f91**\uff1a\u82e5\u89e3\u6790\u5230\u7684\u53d8\u91cf\u5e76\u672a\u88ab\u5206\u914d\u81f3\u4efb\u4f55\u5177\u4f53\u7684 Variable Group\uff0c\u7cfb\u7edf\u987b\u5f3a\u5236\u5c06\u5176\u5f52\u7c7b\u81f3\u540d\u4e3a **\u201cGlobal\u201d** \u7684\u9762\u677f\u7ec4\u4e2d\uff0c\u5e76\u5c06\u8be5\u7ec4**\u9ed8\u8ba4\u60ac\u505c\u5728\u53f3\u4fa7\u5217\u8868\u7684\u6700\u9876\u90e8**\uff0c\u786e\u4fdd\u6563\u4e71\u53d8\u91cf\u88ab\u4f18\u5148\u5904\u7406\u3002\n- **\u89c6\u89c9\u53ef\u8bfb\u6027\u5f3a\u5316 (Visual Icons)**:\n  - **\u52a8\u6001\u5c5e\u6027\u7c7b\u578b\u6807\u8bc6**\uff1a\u57fa\u4e8e\u5e95\u5c42\u8bc6\u522b\u7684 `variableType` \u8fdb\u884c\u5dee\u5f02\u5316\u6e32\u67d3\u3002\n    - **\u516d\u8fb9\u5f62\u56fe\u6807 (Hexagon)**\uff1a\u6240\u6709 Variable \u7c7b\u578b\u7edf\u4e00\u4f7f\u7528 Figma \u539f\u751f\u98ce\u683c\u7684\u516d\u8fb9\u5f62\u56fe\u6807\uff08\u5c3a\u5bf8 10x10\uff0c\u900f\u660e\u5ea6 40%\uff09\uff0c\u4f4d\u7f6e\u4f4d\u4e8e\u6570\u503c\u53f3\u4fa7\uff1a`[\u6570\u503c] [\u56fe\u6807] [\u53d8\u91cf\u540d]`\u3002\n    - **Typography**\uff1a\u663e\u793a\u4e3a `Aa` \u6587\u672c\u6807\u8bc6\u3002\n    - **Missing**\uff1a\u663e\u793a\u4e3a\u95ee\u53f7/\u5e2e\u52a9\u56fe\u6807 (`CircleHelp`)\uff0c\u989c\u8272\u4e3a\u7ea2\u8272 (`#f24822`)\u3002\n  - **\u6570\u503c\u5c55\u793a\u89c4\u8303 (Token Value)**\uff1a\n    - **Badge \u6837\u5f0f**\uff1a`String`\u3001`Number`\u3001`Boolean` \u7edf\u4e00\u91c7\u7528\u5706\u89d2\u77e9\u5f62 Badge\uff0cNumber/Boolean \u4fdd\u6301\u5168\u5927\u5199\u52a0\u7c97\u3002\n    - **\u989c\u8272\u5706\u5757**\uff1a`Color` \u7c7b\u578b\u4ec5\u663e\u793a**\u5e26\u7ec6\u5fae\u9634\u5f71\u7684\u5706\u5f62\u8272\u5757**\uff0c\u4e0d\u518d\u663e\u793a Hex \u5b57\u7b26\u4e32\u3002\n  - **\u56fe\u5c42\u7c7b\u578b\u6807\u8bc6**\uff1a\u5404\u5177\u4f53\u8282\u70b9\u4e4b\u524d\uff08Component\uff0cInstance\uff0cText\uff0cShape\uff0cFrame \u7b49\uff09\u5747\u9700\u6e32\u67d3\u539f\u751f Figma \u98ce\u683c\u6216\u5bd3\u610f\u660e\u786e\u7684\u7ed3\u6784\u56fe\u6807\u3002\n- **\u4f4d\u7f6e\u8bc6\u522b\u63d0\u793a**\uff1a\u5728\u8282\u70b9\u5217\u8868\u7684 Frame \u6807\u9898\u4e2d\uff0c\u663e\u5f0f\u5305\u542b\u6240\u5c5e\u7684 **Page \u540d\u79f0**\uff0c\u683c\u5f0f\u4e3a\uff1a`Page Name / Frame Name` (\u4f8b\u5982\uff1a`UI Toolkit / Base Components`)\u3002\n- **\u805a\u5408\u70b9\u51fb\u4e0e\u4e0b\u94bb\u5c55\u5f00 (Expand to Nodes)**\uff1a\n  - **\u5f15\u7528\u8ba1\u6570 (Citation Count)**\uff1a\u6bcf\u4e2a\u5c42\u7ea7\u53d8\u91cf\u6761\u76ee\u7684\u53f3\u4fa7\uff0c\u6e05\u6670\u5c55\u73b0\u76ee\u524d\u8be5\u6587\u4ef6\u4e2d\u5f15\u7528\u5b83\u7684\u603b\u6b21\u6570\uff08\u5982 `Primary Blue (4)`\uff09\u3002\n  - **\u70b9\u51fb\u884c\u4e3a**\uff1a\u4e8c\u7ea7\u5217\u8868\u4e2d\u7684\u53d8\u91cf\u884c**\u4e0d\u5e94\u76f4\u63a5\u89e6\u53d1\u5355\u4f53\u753b\u5e03\u8df3\u8f6c**\uff08\u56e0\u4e3a 1 \u4e2a\u5f15\u7528\u5927\u4e8e 1 \u7684\u53d8\u91cf\u5bf9\u5e94\u4e86\u753b\u5e03\u4e0a\u7684 N \u4e2a\u6563\u843d\u56fe\u5c42\uff09\u3002\u70b9\u51fb\u8be5\u53d8\u91cf\u884c\uff0c\u5e94\u5f53\u662f\u201c\u5411\u4e0b\u5c55\u5f00 (Expand)\u201d\u5c55\u793a\u4e00\u4e2a\u5b50\u96c6\u5217\u8868\uff0c\u6216\u5e73\u6ed1\u63a8\u5165\u201c\u7b2c\u4e09\u7ea7\u8282\u70b9\u660e\u7ec6\u9875\u201d\uff0c\u66b4\u9732\u51fa\u8fd9 4 \u4e2a\u5177\u4f53\u7684\u5f15\u7528\u56fe\u5c42\u3002\n- **\u6027\u80fd\u9632\u5d29\u89c4\u8303 (Virtual Scroll)**\uff1a\u53f3\u4fa7\u4e3b\u4f53\u7684\u6298\u53e0\u5217\u8868\u7531\u4e8e\u627f\u8f7d\u4e86\u6f5c\u5728\u7684\u4e07\u7ea7\u6570\u636e\uff0c\u5fc5\u987b\u5e95\u5c42\u652f\u6301**\u865a\u62df\u6eda\u52a8\uff08Virtual Scroll\uff09**\u3002\n\n### 3.2 \u4e09\u7ea7\uff1a\u8282\u70b9\u7ea7\u5b9a\u4f4d\u4e0e\u753b\u5e03\u8054\u52a8 (Layer Nodes & Zoom In)\n> **\u903b\u8f91\u52d8\u8bef**\uff1a\u201c\u5b9a\u4f4d\u4e0e\u753b\u5e03\u8054\u52a8\u201d\u7684\u7cbe\u51c6\u89e6\u53d1\u70b9\uff0c\u5fc5\u987b\u662f\u5728\u6811\u72b6\u7ed3\u6784\u7684\u6700\u5e95\u7aef\u2014\u2014\u4e5f\u5c31\u662f**\u5177\u4f53\u7684\u56fe\u5c42\u8282\u70b9 (Layer Node)** \u7ea7\u522b\u4e0a\u3002\n\n- **\u660e\u7ec6\u5217\u8868\u5448\u73b0**\uff1a\u5728\u5c55\u5f00\u4e86\u67d0\u4e00\u7279\u5b9a\u53d8\u91cf\uff08\u6216\u8fdb\u5165\u4e09\u7ea7\uff09\u540e\uff0c\u6b64\u533a\u57df\u5448\u73b0\u6240\u6709\u4f7f\u7528\u4e86\u8be5\u53d8\u91cf\u7684\u56fe\u5c42\u5bf9\u8c61\uff0c\u5efa\u8bae\u6309\u6240\u5728 Frame (\u753b\u677f) \u7ec4\u7ec7\u3002\n- **\u660e\u7ec6\u5217\u8868\u5c42\u7ea7\u51cf\u8d1f (Visual Lightness)**\uff1a\u4e09\u7ea7\u56fe\u5c42\uff08Layer Object\uff09\u7684\u884c\u5bb9\u5668\u5e94\u5f31\u5316\u8fb9\u6846\u539a\u5ea6\u4e0e\u80cc\u666f\u5757\u9762\u79ef\uff0c\u907f\u514d\u5c42\u7ea7\u8fc7\u6df1\u65f6\u7684\u89c6\u89c9\u81c3\u80bf\u3002\n- **\u6307\u793a\u5668\u4e0e Hover \u5c42**\uff1a\u9f20\u6807\u60ac\u505c\u8be5\u8282\u70b9\u884c\u65f6\uff0c\u56fe\u5c42\u6587\u672c\u81ea\u8eab\u5448\u73b0\u54c1\u724c\u8272\u9ad8\u4eae\u8f6c\u6362\uff0c\u5e76\u5728\u884c\u672b\u5feb\u901f\u5524\u5165\u54c1\u724c\u8272\u7684\u201c\u7784\u51c6\uff08Target\uff09\u201d\u56fe\u6807\u3002\u6700\u524d\u9762\u7684\u56fe\u5c42\u7c7b\u578b Icon \u4fdd\u6301\u4e2d\u6027\u9759\u9ed8\uff0c\u9632\u6b62\u8272\u5f69\u6ea2\u51fa\u3002\n- **Click \u89e6\u53d1\u8054\u52a8**\uff1a\n  - \u5355\u51fb\u56fe\u5c42\u8282\u70b9\u884c\uff08\u975e Checkbox \u533a\u57df\uff09\uff0c\u89e6\u53d1\u9ad8\u7cbe\u5ea6\u5b9a\u4f4d\uff1aFigma \u753b\u677f\u81ea\u52a8\u8ba1\u7b97\u5750\u6807\uff0c\u77ac\u95f4\u5c45\u4e2d\u653e\u5927\u81f3\u8be5\u552f\u4e00\u56fe\u5c42\uff0c\u5e76\u6267\u884c `Selected` \u9ad8\u4eae\u9009\u4e2d\u3002\n  - **\u54cd\u5e94\u53bb\u91cd**\uff1a\u5982\u679c\u7528\u6237\u5df2\u7ecf\u5728\u660e\u7ec6\u5217\u8868\u4e2d\u9ad8\u9891\u70b9\u51fb\u5207\u6362\u591a\u4e2a\u56fe\u5c42\uff0c\u89c6\u56fe\u7f29\u653e\u5e94\u629b\u5f03\u6ed1\u884c\u8fc7\u6e21\u6001\uff0c\u76f4\u63a5\u95ea\u5207\u5230\u76ee\u6807\uff0c\u4ee5\u9632\u5f15\u8d77\u6655\u7729\u3002\n\n## 4. \u6279\u91cf\u6392\u9519\u533a (Batch Actions)\n\n### 4.1 \u52a8\u4f5c\u89e6\u53d1\u5c42\u53ef\u89c1\u6027\u4e0e\u7ec4\u5185\u5168\u9009 (Group Selection)\n- **\u52a8\u4f5c\u6309\u94ae\u6fc0\u6d3b\u6761\u4ef6**\uff1a\u52a8\u4f5c\u6309\u94ae\uff08Replace \u548c Detach\uff09\u53ea\u6709\u5728\u5217\u8868\u4e2d**\u81f3\u5c11\u7531 Checkbox \u52fe\u9009\u4e86 `>= 1` \u4e2a\u56fe\u5c42\u8282\u70b9**\u65f6\u624d\u4f1a\u6fc0\u6d3b\u3002\n- **\u672a\u52fe\u9009\u6001**\uff1a\u672a\u52fe\u9009\u4efb\u4f55\u9879\u76ee\u65f6\uff0c\u8fd9\u90e8\u5206 UI \u5e94\u4fdd\u6301\u7981\u7528\uff08Opacity 50%\uff09\u4ee5\u9632\u8bef\u89e6\u3002\n- **Variable \u5c42\u7ea7\u5168\u9009 (Select All in Group)**\uff1a\n  - **\u4ea4\u4e92\u4f4d\u7f6e**\uff1a\u5728 Accordion Header (Variable Row) \u7684\u53d8\u91cf\u56fe\u6807\u5de6\u4fa7\u589e\u52a0 Checkbox\u3002\n  - **\u5168\u9009\u903b\u8f91**\uff1a\u52fe\u9009 Header Checkbox\uff0c\u81ea\u52a8\u9009\u4e2d\u8be5\u53d8\u91cf\u4e0b\u5f53\u524d\u8fc7\u6ee4\u540e\u53ef\u89c1\u7684\u6240\u6709\u56fe\u5c42\u8282\u70b9\u3002\n  - **\u534a\u9009\u6001 (Indeterminate)**\uff1a\u5f53\u53d8\u91cf\u4e0b\u7684\u5b50\u8282\u70b9\u88ab\u90e8\u5206\u52fe\u9009\u65f6\uff0cHeader Checkbox \u663e\u793a\u4e3a\u201c\u6a2a\u6760\u201d\u56fe\u6807\u3002\n  - **\u5438\u9876\u540c\u6b65**\uff1a\u5f53\u53d8\u91cf\u884c\u5438\u9876\u65f6\uff0c\u5438\u9876\u7684\u7c98\u6027\u8868\u5934\u540c\u6b65\u5c55\u793a\u5bf9\u5e94\u7684 Checkbox \u72b6\u6001\u53ca\u64cd\u4f5c\u903b\u8f91\u3002\n\n### 4.2 \u6838\u5fc3\u4fee\u8865\u52a8\u4f5c\u54cd\u5e94 (Replace / Detach)\n- **Replace (\u6279\u91cf\u6620\u5c04\u66ff\u6362)**:\n  - \u70b9\u51fb\u540e\uff0c\u5c31\u5730\u5f39\u8d77 Figma \u8bbe\u8ba1\u89c4\u8303\u7684\u4e0b\u62c9\u641c\u7d22\u680f\uff08Popover Menu\uff09\u3002\n  - \u7528\u6237\u5728\u8f93\u5165\u6846\u4e2d\u5b9e\u65f6\u68c0\u7d22\u5e93\u91cc\u6b63\u5e38\u7684 Variable\u3002\u70b9\u51fb\u6620\u5c04\u540e\uff0c\u5f39\u7a97\u5173\u95ed\u3002\n  - **\u6279\u91cf\u64cd\u4f5c\u53cd\u9988\u52a8\u753b**\uff1a\n    - **\u6210\u529f**\uff1a\u9879\u76ee\u884c\u7acb\u5373\u663e\u793a\u7eff\u8272\u80cc\u666f\u95ea\u70c1 -> 600ms \u540e\u6267\u884c\u6de1\u51fa\u52a8\u753b -> 400ms \u540e\u4ece\u5217\u8868\u4e2d\u5f7b\u5e95\u79fb\u9664\u3002\n    - **\u5931\u8d25**\uff1a\u4fdd\u7559\u7ea2\u8272\u80cc\u666f\u3001\u663e\u793a `XCircle` \u56fe\u6807\uff0c\u5e76\u5728\u60ac\u505c\u65f6\u901a\u8fc7 Tooltip \u663e\u793a\u5931\u8d25\u539f\u56e0\uff08\u5982\u201c\u53d7\u9650\u56fe\u5c42\u201d\uff09\u3002\n  - **\u9501\u5b9a\u56fe\u5c42\u66ff\u6362\u903b\u8f91**\uff1a\u5bf9\u4e8e\u88ab Locked \u7684\u56fe\u5c42\uff0c\u540e\u53f0\u903b\u8f91\u5e94\u4e3a\u201c\u4e34\u65f6\u89e3\u9501 -> \u66ff\u6362\u53d8\u91cf -> \u91cd\u65b0\u9501\u56de\u53bb\u201d\uff08\u4fdd\u969c\u66ff\u6362\u901a\u8fc7\uff09\u3002\n- **Detach (\u89e3\u7ed1\u4e3a\u786c\u7f16\u7801)**:\n  - \u64cd\u4f5c\u751f\u6548\u540e\u5411\u5de5\u4f5c\u533a\u5e95\u90e8\u629b\u51fa\u4e00\u4e2a\u539f\u751f\u5e26 `Cancel/Undo` \u529f\u80fd\u7684 Toast `(figma.notify)`\u3002\u7528\u539f\u751f\u63d0\u9192\u515c\u5e95\u7531\u4e8e\u8bef\u89e6\u5e26\u6765\u7684\u89e3\u7ed1\u540e\u60a3\u3002\n  - \u5931\u8d25\u6216\u90e8\u5206\u6210\u529f\u8868\u73b0\u540c\u4e0a\uff0c\u63d0\u4f9b\u72b6\u6001\u5206\u7c7b\u53cd\u9988\u3002\n\n## 5. \u5f02\u5e38\u5c4f\u853d\u4e0e\u515c\u5e95 (Exceptions Handling)\n\n- **\u53d7\u9650\u7684\u4e3b\u7ec4\u4ef6\u6eaf\u6e90 (Go to Main Component)**: \n  - **\u67e5\u6f0f\u7ea0\u6b63\u63d0\u793a**\uff1a\u5f53\u6211\u4eec\u626b\u5230\u4e86\u4e00\u4e2a\u6df1\u5c42\u6b21 Variant \u5b9e\u4f8b\u91cc\u7684\u6b7b\u94fe\u63a5\uff0cFigma \u540e\u7aef API \u662f\u65e0\u6cd5\u76f4\u63a5\u8d8a\u6743 Replace \u8be5\u5c5e\u6027\u7684\u3002\n  - **\u4ea4\u4e92\u5e94\u5bf9**\uff1a\u6b64\u65f6\u5217\u8868\u70b9\u51fb Replace \u4f1a\u4e0a\u629b\u4e00\u6761 Error Toast\u3002\u5982\u679c\u8be5\u56fe\u5c42\u88ab\u6807\u8bb0\u4e3a\u53d7\u4fdd\u62a4\uff0c\u5217\u8868\u4e2d\u8be5\u8282\u70b9\u53f3\u4fa7\u987b\u5c55\u73b0\u4e00\u4e2a\u4e13\u95e8\u7684\u76f4\u8fbe\u6309\u94ae `Go to Main`\uff0c\u70b9\u51fb\u5f3a\u5236\u8df3\u8f6c\u81f3\u5176\u6e90\u5934\u753b\u677f\uff0c\u5f15\u5bfc\u8bbe\u8ba1\u5e08\u4ece\u4e0a\u6e38\u6839\u6cbb\u3002\n- **\u53ea\u8bfb\u6743\u9650 (Read-only)**: \u521d\u59cb\u5316\u8fdb\u5165\u65f6\u5982\u679c Figma file \u5c5e\u4e8e View \u6743\u9650\uff0c\u6574\u4e2a\u4fee\u6539\u7ec4\u4ef6\u5168\u76d8 Disable\uff0c\u9876\u90e8\u5f3a\u5c55\u73b0\u9ec4\u8272 `Warning Banner - View Only`\u3002\n"}], "grading": {"expectations": [{"text": "\u4ee3\u7801\u4e2d\u5305\u542b\u5e26\u6709\u5bfc\u51fa\u56fe\u6807\u548c Loading \u6001\u63a7\u5236\u7684 Export \u6309\u94ae\u3002", "passed": true, "evidence": "InventoryView.tsx \u4e2d\u6dfb\u52a0\u4e86 Download \u56fe\u6807\u548c isExporting \u72b6\u6001\u63a7\u5236\u3002"}, {"text": "src/document/design_prd.md \u8be6\u7ec6\u5b9a\u4e49\u4e86 Export \u529f\u80fd\u7684\u5404\u4e2a\u4ea4\u4e92\u72b6\u6001\u3002", "passed": false, "evidence": "PRD \u4ec5\u6dfb\u52a0\u4e86\u4e00\u884c\u63cf\u8ff0\uff0c\u5e76\u672a\u5b9a\u4e49\u4ea4\u4e92\u72b6\u6001\u3001Loading \u903b\u8f91\u6216\u5f02\u5e38\u5904\u7406\u3002"}, {"text": "\u7ec8\u7aef\u6267\u884c\u4e86 npm run build \u4e14\u6210\u529f\u5b8c\u6210\u3002", "passed": false, "evidence": "\u672a\u6267\u884c\u4efb\u4f55\u6784\u5efa\u547d\u4ee4\u3002"}]}}, {"id": "eval-1-with_skill", "prompt": "\u5728 InventoryView \u9876\u90e8\u7684\u5168\u5c40\u64cd\u4f5c\u533a\u589e\u52a0\u4e00\u4e2a 'Export' \u6309\u94ae\u3002\u70b9\u51fb\u65f6\u9700\uff1a1. \u63d0\u53d6\u5f53\u524d\u8fc7\u6ee4\u540e\u7684\u6240\u6709\u53d8\u91cf\u6570\u636e\uff1b2. \u5c55\u793a\u5904\u7406\u4e2d\u7684 Loading \u72b6\u6001\uff1b3. \u751f\u6210 JSON \u5e76\u901a\u8fc7 postMessage \u53d1\u9001\u5230\u540e\u53f0\uff08\u5047\u8bbe\u540e\u53f0\u4f1a\u5904\u7406\u4e0b\u8f7d\uff09\u3002\u4efb\u52a1\u5b8c\u6210\u540e\uff0c\u8bf7\u540c\u6b65\u66f4\u65b0\u8bbe\u8ba1 PRD \u5e76\u8fd0\u884c\u6784\u5efa\u9a8c\u8bc1\u3002", "eval_id": 1, "outputs": [{"name": "InventoryView.tsx", "type": "text", "content": "import { useState, useMemo, useEffect, useCallback } from 'react';\nimport { Button } from '../components/Button';\nimport { ReplacePopover, AvailableVariable } from '../components/ReplacePopover';\nimport {\n  ArrowLeft, RefreshCw, Search, ChevronDown, ChevronRight,\n  Lock, EyeOff, Target, Component, Box, Type, Square, Frame,\n  CircleHelp, Unlink,\n  CheckCircle2, XCircle, Download, Check,\n} from 'lucide-react';\nimport { GroupedVirtuoso } from 'react-virtuoso';\nimport { Checkbox } from '../components/Checkbox';\nimport { cn } from '../utils/cn';\nimport { TokenValueDisplay, VariableTypeIcon } from '../components/TokenValue';\n\nexport interface TokenNode {\n  id: string;\n  name: string;\n  type: string;\n  variableName: string;\n  collectionName: string;\n  groupName: string;\n  frameName: string;\n  pageName: string;\n  source: 'local' | 'linked' | 'unlinked' | 'missing';\n  isLocked: boolean;\n  isHidden: boolean;\n  variableType?: 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN' | 'TYPOGRAPHY' | 'MISSING' | 'UNKNOWN';\n  /** Property keys bound to variables on this node (e.g. 'fills', 'strokes', 'opacity') */\n  boundPropertyKeys?: string[];\n  /** For styles, the style id */\n  variableId?: string | null;\n  /** Actual value of the variable/style */\n  value?: any;\n  /** Library name identifying the source of the variable/style */\n  libraryName?: string;\n}\n\ninterface InventoryViewProps {\n  onBack: () => void;\n  onRefresh: () => void;\n  isRefreshing: boolean;\n  nodes: TokenNode[];\n}\n\ntype NodeStatus = 'idle' | 'pending' | 'success' | 'error';\n\n// Flat list types for Virtuoso rendering\ntype ListItem =\n  | { type: 'groupHeader'; name: string; isCollapsed: boolean }\n  | { type: 'variableRow'; id: string; name: string; count: number; isExpanded: boolean; variableType: string; value?: any; isChecked: boolean; isIndeterminate: boolean }\n  | { type: 'frameHeader'; name: string }\n  | { type: 'nodeRow'; node: TokenNode; isChecked: boolean };\n\nexport function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: InventoryViewProps) {\n  const [searchQuery, setSearchQuery] = useState('');\n  const [selectedKey, setSelectedKey] = useState<string>('');\n  const [expandedVars, setExpandedVars] = useState<Set<string>>(new Set());\n  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());\n  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());\n  const [topIndex, setTopIndex] = useState(0);\n\n  type TypeFilter = 'All' | 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';\n  const [variableTypeFilter, setVariableTypeFilter] = useState<TypeFilter>('All');\n\n  // --- Node status state machine ---\n  const [nodeStatus, setNodeStatus] = useState<Map<string, NodeStatus>>(new Map());\n  const [nodeErrors, setNodeErrors] = useState<Map<string, string>>(new Map());\n  // Ids fading out after success (CSS transition)\n  const [fadingIds, setFadingIds] = useState<Set<string>>(new Set());\n  \n  // Export states\n  const [isExporting, setIsExporting] = useState(false);\n  const [exportSuccess, setExportSuccess] = useState(false);\n\n  // --- Replace Popover state ---\n  const [isPopoverOpen, setIsPopoverOpen] = useState(false);\n  const [isLoadingVars, setIsLoadingVars] = useState(false);\n  const [availableVariables, setAvailableVariables] = useState<AvailableVariable[]>([]);\n\n  // --- Listen to plugin messages ---\n  useEffect(() => {\n    const handleMessage = (event: MessageEvent) => {\n      const msg = event.data?.pluginMessage;\n      if (!msg) return;\n\n      if (msg.type === 'all-variables') {\n        setAvailableVariables(msg.payload);\n        setIsLoadingVars(false);\n      }\n\n      if (msg.type === 'batch-replace-result' || msg.type === 'batch-detach-result') {\n        const results: Array<{ id: string; success: boolean; reason?: string }> = msg.payload;\n\n        const newStatus = new Map(nodeStatus);\n        const newErrors = new Map(nodeErrors);\n        const successKeys: string[] = [];\n\n        results.forEach(r => {\n          Array.from(newStatus.keys()).forEach(key => {\n            if (key.startsWith(r.id + '::')) {\n              if (r.success) {\n                newStatus.set(key, 'success');\n                successKeys.push(key);\n              } else {\n                newStatus.set(key, 'error');\n                newErrors.set(key, r.reason ?? '\u64cd\u4f5c\u5931\u8d25');\n              }\n            }\n          });\n        });\n\n        setNodeStatus(newStatus);\n        setNodeErrors(newErrors);\n\n        // Fade-out success items after 600ms, then remove from list\n        if (successKeys.length > 0) {\n          setTimeout(() => {\n            setFadingIds(prev => new Set([...prev, ...successKeys]));\n            setTimeout(() => {\n              setSelectedNodeIds(prev => {\n                const next = new Set(prev);\n                successKeys.forEach(k => next.delete(k));\n                return next;\n              });\n              setNodeStatus(prev => {\n                const next = new Map(prev);\n                successKeys.forEach(k => next.delete(k));\n                return next;\n              });\n              setFadingIds(prev => {\n                const next = new Set(prev);\n                successKeys.forEach(k => next.delete(k));\n                return next;\n              });\n            }, 400);\n          }, 600);\n        }\n      }\n    };\n\n    window.addEventListener('message', handleMessage);\n    return () => window.removeEventListener('message', handleMessage);\n  }, [nodeStatus, nodeErrors]);\n\n  // --- Derive collections ---\n  type LibraryGroup = {\n    libraryName: string;\n    collections: string[];\n    priority: number;\n  };\n\n  const libraryGroups = useMemo(() => {\n    const groupsMap = new Map<string, Set<string>>();\n    nodes.forEach(n => {\n      const lib = n.libraryName || 'Local Library';\n      const coll = n.collectionName || 'Default';\n      if (!groupsMap.has(lib)) groupsMap.set(lib, new Set());\n      groupsMap.get(lib)!.add(coll);\n    });\n\n    const groups: LibraryGroup[] = Array.from(groupsMap.entries()).map(([lib, collSet]) => {\n      const colls = Array.from(collSet).sort((a, b) => {\n        const getPriority = (name: string) => {\n          if (name === 'Hardcoded') return 4;\n          if (name === 'Missing') return 3;\n          if (name.includes('Styles') || name === 'Typography') return 2;\n          return 1;\n        };\n        const pA = getPriority(a);\n        const pB = getPriority(b);\n        if (pA !== pB) return pA - pB;\n        return a.localeCompare(b);\n      });\n      \n      let priority = 2; // Specific Linked Libraries\n      if (lib === 'Local Library') priority = 1;\n      if (lib === 'Unlinked Library') priority = 3;\n      if (lib === 'Missing') priority = 4;\n      if (lib === 'Hardcoded') priority = 5;\n      \n      return { libraryName: lib, collections: colls, priority };\n    });\n\n    return groups.sort((a, b) => {\n      if (a.priority !== b.priority) return a.priority - b.priority;\n      return a.libraryName.localeCompare(b.libraryName);\n    });\n  }, [nodes]);\n\n  // --- Derive visibility data for Collections ---\n  const collectionsVisibility = useMemo(() => {\n    const visibilityMap = new Map<string, Set<string>>();\n    nodes.forEach(n => {\n      const lib = n.libraryName || 'Local Library';\n      const coll = n.collectionName || 'Default';\n      const itemKey = `${lib}:${coll}`;\n      if (!visibilityMap.has(itemKey)) visibilityMap.set(itemKey, new Set());\n      if (n.variableType) visibilityMap.get(itemKey)!.add(n.variableType);\n    });\n    return visibilityMap;\n  }, [nodes]);\n\n  const activeKey = useMemo(() => {\n    if (selectedKey) return selectedKey;\n    if (libraryGroups.length > 0 && libraryGroups[0].collections.length > 0) {\n      return `${libraryGroups[0].libraryName}:${libraryGroups[0].collections[0]}`;\n    }\n    return 'Local Library:Default';\n  }, [selectedKey, libraryGroups]);\n\n  const filteredNodes = useMemo(() => {\n    const splitIndex = activeKey.indexOf(':');\n    const activeLib = activeKey.slice(0, splitIndex);\n    const activeColl = activeKey.slice(splitIndex + 1);\n\n    return nodes.filter(n => {\n      const nodeLib = n.libraryName || 'Local Library';\n      const nodeColl = n.collectionName || 'Default';\n      const matchKey = nodeLib === activeLib && nodeColl === activeColl;\n      const matchSearch =\n        n.variableName.toLowerCase().includes(searchQuery.toLowerCase()) ||\n        n.name.toLowerCase().includes(searchQuery.toLowerCase());\n      const matchType = variableTypeFilter === 'All' || n.variableType === variableTypeFilter;\n      return matchKey && matchSearch && matchType;\n    });\n  }, [nodes, activeKey, searchQuery, variableTypeFilter]);\n\n  // --- Flatten hierarchy for Virtuoso ---\n  const { groupCounts, groupHeaders, flattenedItems } = useMemo(() => {\n    const counts: number[] = [];\n    const headers: ListItem[] = [];\n    const items: ListItem[] = [];\n\n    if (filteredNodes.length === 0) return { groupCounts: counts, groupHeaders: headers, flattenedItems: items };\n\n    const groupsMap = new Map<string, TokenNode[]>();\n    filteredNodes.forEach(n => {\n      const g = n.groupName || 'Global';\n      if (!groupsMap.has(g)) groupsMap.set(g, []);\n      groupsMap.get(g)!.push(n);\n    });\n\n    const sortedGroups = Array.from(groupsMap.keys()).sort((a, b) => {\n      if (a === 'Global') return -1;\n      if (b === 'Global') return 1;\n      return a.localeCompare(b);\n    });\n\n    sortedGroups.forEach(groupName => {\n      const isCollapsed = collapsedGroups.has(groupName);\n      headers.push({ type: 'groupHeader', name: groupName, isCollapsed });\n\n      let currentGroupItemCount = 0;\n\n      if (!isCollapsed) {\n        const groupNodes = groupsMap.get(groupName)!;\n        const varsMap = new Map<string, TokenNode[]>();\n        groupNodes.forEach(n => {\n          if (!varsMap.has(n.variableName)) varsMap.set(n.variableName, []);\n          varsMap.get(n.variableName)!.push(n);\n        });\n\n        const sortedVars = Array.from(varsMap.keys()).sort();\n        sortedVars.forEach(varName => {\n          const vNodes = varsMap.get(varName)!;\n          const uniqueVarId = `${groupName}:${varName}`;\n          const isVarExpanded = expandedVars.has(uniqueVarId);\n\n          // Calculate selection state for the variable group\n          const selectedInGroup = vNodes.filter(n => selectedNodeIds.has(`${n.id}::${varName}::${groupName}`)).length;\n          const isChecked = selectedInGroup === vNodes.length && vNodes.length > 0;\n          const isIndeterminate = selectedInGroup > 0 && selectedInGroup < vNodes.length;\n\n            items.push({\n              type: 'variableRow',\n              id: uniqueVarId,\n              name: varName,\n              count: vNodes.length,\n              isExpanded: isVarExpanded,\n              variableType: vNodes[0].variableType || 'UNKNOWN',\n              value: vNodes[0].value,\n              isChecked,\n              isIndeterminate,\n            });\n          currentGroupItemCount++;\n\n          if (isVarExpanded) {\n            const framesMap = new Map<string, TokenNode[]>();\n            vNodes.forEach(n => {\n              const f = `${n.pageName || 'Unknown Page'} / ${n.frameName || 'Canvas'}`;\n              if (!framesMap.has(f)) framesMap.set(f, []);\n              framesMap.get(f)!.push(n);\n            });\n\n            const sortedFrames = Array.from(framesMap.keys()).sort();\n            sortedFrames.forEach(frameName => {\n              items.push({ type: 'frameHeader', name: frameName });\n              currentGroupItemCount++;\n\n              const fNodes = framesMap.get(frameName)!;\n              fNodes.forEach(n => {\n                items.push({\n                  type: 'nodeRow',\n                  node: n,\n                  isChecked: selectedNodeIds.has(`${n.id}::${varName}::${groupName}`),\n                });\n                currentGroupItemCount++;\n              });\n            });\n          }\n        });\n      }\n\n      counts.push(currentGroupItemCount);\n    });\n\n    return { groupCounts: counts, groupHeaders: headers, flattenedItems: items };\n  }, [filteredNodes, expandedVars, collapsedGroups, selectedNodeIds]);\n\n  const activeOverlayVariable = useMemo(() => {\n    if (!flattenedItems || flattenedItems.length === 0) return null;\n    let activeVar: ListItem | null = null;\n    for (let i = topIndex; i >= 0; i--) {\n      const item = flattenedItems[i];\n      if (item && item.type === 'variableRow') {\n        activeVar = item;\n        break;\n      }\n    }\n    return activeVar;\n  }, [topIndex, flattenedItems]);\n\n  // --- Handlers ---\n  const toggleGroupCollapsed = (groupName: string) => {\n    setCollapsedGroups(prev => {\n      const next = new Set(prev);\n      if (next.has(groupName)) next.delete(groupName);\n      else next.add(groupName);\n      return next;\n    });\n  };\n\n  const toggleVariableExpanded = (varName: string) => {\n    setExpandedVars(prev => {\n      const next = new Set(prev);\n      if (next.has(varName)) next.delete(varName);\n      else next.add(varName);\n      return next;\n    });\n  };\n\n  const toggleVariableSelection = (uniqueId: string, checked: boolean) => {\n    const colonIndex = uniqueId.indexOf(':');\n    const groupName = uniqueId.slice(0, colonIndex);\n    const varName = uniqueId.slice(colonIndex + 1);\n    \n    const varNodes = filteredNodes.filter(n => n.groupName === groupName && n.variableName === varName);\n    const varNodeSelectionKeys = varNodes.map(n => `${n.id}::${varName}::${groupName}`);\n    setSelectedNodeIds(prev => {\n      const next = new Set(prev);\n      if (checked) {\n        varNodeSelectionKeys.forEach(k => next.add(k));\n      } else {\n        varNodeSelectionKeys.forEach(k => next.delete(k));\n      }\n      return next;\n    });\n  };\n\n  const toggleNodeSelection = (compositeKey: string, checked: boolean) => {\n    setSelectedNodeIds(prev => {\n      const next = new Set(prev);\n      if (checked) next.add(compositeKey);\n      else next.delete(compositeKey);\n      return next;\n    });\n  };\n\n  const handleZoom = (id: string) => {\n    parent.postMessage({ pluginMessage: { type: 'zoom-to-node', payload: { id } } }, '*');\n  };\n\n  // Batch actions\n  const handleReplaceClick = useCallback(() => {\n    // Step 1: request variables list from backend\n    setIsLoadingVars(true);\n    setAvailableVariables([]);\n    setIsPopoverOpen(true);\n    parent.postMessage({ pluginMessage: { type: 'get-all-variables' } }, '*');\n  }, []);\n\n  const handleVariableSelected = useCallback((variable: AvailableVariable) => {\n    // Mark selected nodes as pending\n    const keys = Array.from(selectedNodeIds);\n    const newStatus = new Map(nodeStatus);\n    keys.forEach(k => newStatus.set(k, 'pending'));\n    setNodeStatus(newStatus);\n\n    // Deduplicate node payload\n    const uniqueNodeIds = Array.from(new Set(keys.map(k => k.split('::')[0])));\n    const nodePayloads = uniqueNodeIds.map(nodeId => {\n      const node = nodes.find(n => n.id === nodeId);\n      return { id: nodeId, boundPropertyKeys: node?.boundPropertyKeys ?? [] };\n    });\n\n    parent.postMessage({\n      pluginMessage: {\n        type: 'batch-replace',\n        payload: {\n          nodes: nodePayloads,\n          targetVariableId: variable.id,\n        },\n      },\n    }, '*');\n  }, [selectedNodeIds, nodeStatus, nodes]);\n\n  const handleDetach = useCallback(() => {\n    const keys = Array.from(selectedNodeIds);\n    const newStatus = new Map(nodeStatus);\n    keys.forEach(k => newStatus.set(k, 'pending'));\n    setNodeStatus(newStatus);\n\n    const uniqueNodeIds = Array.from(new Set(keys.map(k => k.split('::')[0])));\n    const nodePayloads = uniqueNodeIds.map(nodeId => {\n      const node = nodes.find(n => n.id === nodeId);\n      return { id: nodeId, boundPropertyKeys: node?.boundPropertyKeys ?? [] };\n    });\n\n    parent.postMessage({\n      pluginMessage: {\n        type: 'batch-detach',\n        payload: { nodes: nodePayloads },\n      },\n    }, '*');\n  }, [selectedNodeIds, nodeStatus, nodes]);\n\n  const handleExport = useCallback(async () => {\n    if (isExporting) return;\n    setIsExporting(true);\n    setExportSuccess(false);\n\n    try {\n      // Simulate data extraction logic with more detail\n      const exportData = filteredNodes.map(n => ({\n        id: n.id,\n        layerName: n.name,\n        token: n.variableName,\n        value: n.value,\n        source: n.source\n      }));\n      \n      parent.postMessage({\n        pluginMessage: {\n          type: 'export-json',\n          payload: JSON.stringify(exportData, null, 2)\n        }\n      }, '*');\n      \n      // Simulate success callback or delay\n      await new Promise(r => setTimeout(r, 800));\n      setExportSuccess(true);\n      setTimeout(() => setExportSuccess(false), 2000);\n    } catch (err) {\n      console.error('Export failed:', err);\n    } finally {\n      setIsExporting(false);\n    }\n  }, [filteredNodes, isExporting]);\n\n  const hasSelection = selectedNodeIds.size > 0;\n\n\n  return (\n    <div className=\"w-full h-full flex flex-col bg-[var(--figma-color-bg)] text-[var(--figma-color-text)] overflow-hidden\">\n\n      {/* Top Header */}\n      {/* Top Header */}\n      <div className=\"flex flex-col bg-[var(--figma-color-bg)] text-[var(--figma-color-text)]\">\n        {/* Row 1: Nav Bar */}\n        <div className=\"flex items-center justify-between p-2\">\n          <Button variant=\"secondary\" size=\"sm\" onClick={onBack} className=\"px-2 border-transparent shadow-none hover:bg-[var(--figma-color-bg-hover)] h-6\">\n            <ArrowLeft className=\"w-3.5 h-3.5 mr-1\" /> Back\n          </Button>\n        </div>\n        \n        {/* Row 2: Type Filter with Top and Bottom Borders */}\n        <div className=\"flex items-center gap-1 overflow-x-auto hide-scrollbar px-2 py-2 border-y border-[var(--figma-color-border)] bg-[var(--figma-color-bg-secondary)]/30\">\n          {(['All', 'COLOR', 'FLOAT', 'STRING', 'BOOLEAN'] as TypeFilter[]).map(type => (\n            <button\n              key={type}\n              onClick={() => setVariableTypeFilter(type)}\n              className={cn(\n                \"px-2 py-1 text-[10px] font-medium rounded-full whitespace-nowrap transition-colors border\",\n                variableTypeFilter === type\n                  ? \"bg-[#0d99ff]/10 text-[#0d99ff] border-[#0d99ff]\"\n                  : \"bg-transparent text-[var(--figma-color-text-secondary)] border-transparent hover:bg-[var(--figma-color-bg-hover)]\"\n              )}\n            >\n              {type === 'FLOAT' ? 'Number' : type === 'COLOR' ? 'Color' : type === 'STRING' ? 'String' : type === 'BOOLEAN' ? 'Boolean' : 'All'}\n            </button>\n          ))}\n        </div>\n\n        {/* Row 3: Search & Actions Toolbar */}\n        <div className=\"flex items-center gap-1.5 p-2 border-b border-[var(--figma-color-border)] relative\">\n          {/* Replace Popover anchored here */}\n          <ReplacePopover\n            isOpen={isPopoverOpen}\n            isLoading={isLoadingVars}\n            variables={availableVariables}\n            onSelect={handleVariableSelected}\n            onClose={() => setIsPopoverOpen(false)}\n            position=\"bottom\"\n          />\n\n          <div className=\"relative flex-1 min-w-0\">\n            <Search className=\"w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 opacity-40\" />\n            <input\n              type=\"text\"\n              className=\"w-full h-7 pl-7 pr-2 text-[11px] bg-transparent border border-[var(--figma-color-border)] rounded focus:outline-none focus:border-[#0d99ff] transition-colors placeholder:text-[var(--figma-color-text-tertiary)]\"\n              placeholder=\"Search tokens...\"\n              value={searchQuery}\n              onChange={e => setSearchQuery(e.target.value)}\n            />\n          </div>\n\n          <div className=\"flex items-center gap-1 shrink-0\">\n            <Button \n              variant=\"secondary\" \n              size=\"sm\" \n              onClick={handleReplaceClick} \n              className={cn(\n                \"px-2 border-[var(--figma-color-border)] shadow-none h-7 font-medium\",\n                !hasSelection && \"opacity-50 grayscale-[0.5]\"\n              )}\n              disabled={!hasSelection}\n            >\n              <span className=\"text-[11px]\">Replace</span>\n            </Button>\n\n            <Button \n              variant=\"secondary\" \n              size=\"sm\" \n              onClick={handleDetach} \n              className={cn(\n                \"px-2 border-[var(--figma-color-border)] shadow-none h-7 font-medium\",\n                !hasSelection && \"opacity-50 grayscale-[0.5]\"\n              )}\n              disabled={!hasSelection}\n            >\n              <span className=\"text-[11px]\">Detach</span>\n            </Button>\n\n            <Button \n              variant=\"secondary\" \n              size=\"sm\" \n              onClick={onRefresh} \n              className=\"px-2 border-[var(--figma-color-border)] shadow-none hover:bg-[var(--figma-color-bg-hover)] h-7 shrink-0\"\n              disabled={isRefreshing}\n              title=\"Refresh\"\n            >\n              {isRefreshing\n                ? <RefreshCw className=\"w-3 h-3 animate-spin\" />\n                : <RefreshCw className=\"w-3 h-3\" />}\n            </Button>\n\n            <Button \n              variant=\"secondary\" \n              size=\"sm\" \n              onClick={handleExport} \n              className={cn(\n                \"px-2 border-[var(--figma-color-border)] shadow-none h-7 flex items-center justify-center min-w-[32px] transition-all\",\n                exportSuccess && \"text-green-500 bg-green-500/10 border-green-500\"\n              )}\n              disabled={isExporting}\n              title=\"Export to JSON\"\n            >\n              {isExporting ? (\n                <RefreshCw className=\"w-3 h-3 animate-spin\" />\n              ) : exportSuccess ? (\n                <Check className=\"w-3 h-3\" />\n              ) : (\n                <Download className=\"w-3 h-3\" />\n              )}\n            </Button>\n          </div>\n        </div>\n      </div>\n\n      <div className=\"flex-1 flex overflow-hidden\">\n        {/* Left Sidebar */}\n        <div className=\"w-[130px] overflow-y-auto border-r border-[var(--figma-color-border)] bg-[var(--figma-color-bg-secondary)] flex flex-col shrink-0 flex-nowrap hide-scrollbar p-1\">\n          {libraryGroups.map(group => {\n            // Check visibility of each collection in this group\n            const collectionsWithVisibility = group.collections.map(c => {\n              const itemKey = `${group.libraryName}:${c}`;\n              const availableTypes = collectionsVisibility.get(itemKey) || new Set();\n              const isVisible = variableTypeFilter === 'All' || availableTypes.has(variableTypeFilter);\n              return { name: c, isVisible, itemKey };\n            });\n\n            // If ALL collections in this group are hidden, hide the group header too\n            const isGroupVisible = collectionsWithVisibility.some(c => c.isVisible);\n\n            return (\n              <div \n                key={group.libraryName} \n                className={cn(\n                  \"flex flex-col transition-all duration-300 ease-in-out origin-top\",\n                  isGroupVisible ? \"opacity-100 max-h-[1000px] mb-2\" : \"opacity-0 max-h-0 overflow-hidden pointer-events-none mb-0\"\n                )}\n              >\n                <div className=\"px-2 py-1 text-[9px] font-bold text-[var(--figma-color-text-tertiary)] uppercase tracking-wider truncate\" title={group.libraryName}>\n                  {group.libraryName}\n                </div>\n                <div className=\"flex flex-col\">\n                  {collectionsWithVisibility.map(coll => {\n                    const isVisible = coll.isVisible;\n                    const c = coll.name;\n                    const itemKey = coll.itemKey;\n                    const isSelected = activeKey === itemKey;\n                    const isMissing = group.libraryName === 'Missing' || c === 'Missing';\n                    const isHardcoded = group.libraryName === 'Hardcoded' || c === 'Hardcoded';\n                    const isUnlinked = group.libraryName === 'Unlinked Library';\n\n                    return (\n                      <button\n                        key={c}\n                        onClick={() => setSelectedKey(itemKey)}\n                        className={cn(\n                          \"text-[10px] text-left font-medium px-2 rounded truncate transition-all duration-200 flex items-center justify-between group\",\n                          isVisible \n                            ? \"opacity-100 max-h-12 py-1.5 mb-0.5\" \n                            : \"opacity-0 max-h-0 py-0 mb-0 overflow-hidden pointer-events-none\",\n                          isSelected\n                            ? \"bg-[#0d99ff] text-white shadow-sm hover:bg-[#0084e5]\"\n                            : isMissing\n                            ? \"text-[#f24822] hover:bg-[#f24822]/10 hover:text-[#f24822]\"\n                            : isHardcoded || isUnlinked\n                            ? \"text-[var(--figma-color-text-tertiary)] hover:bg-[var(--figma-color-bg-hover)] hover:text-[var(--figma-color-text)] italic\"\n                            : \"text-[var(--figma-color-text-secondary)] hover:bg-[var(--figma-color-bg-hover)] hover:text-[var(--figma-color-text)]\"\n                        )}\n                        title={c}\n                      >\n                        <span className=\"truncate\">{c}</span>\n                        {isMissing && <CircleHelp className={cn(\"w-3 h-3 shrink-0 transition-opacity\", isSelected ? \"text-white opacity-100\" : \"text-[#f24822] opacity-80 group-hover:opacity-100\")} />}\n                        {isHardcoded && <Unlink className={cn(\"w-3 h-3 shrink-0 transition-opacity\", isSelected ? \"text-white opacity-100\" : \"text-[var(--figma-color-text-tertiary)] opacity-80 group-hover:opacity-100\")} />}\n                      </button>\n                    );\n                  })}\n                </div>\n              </div>\n            );\n          })}\n        </div>\n\n        {/* Right Main Content */}\n        <div className=\"flex-1 relative overflow-hidden bg-[var(--figma-color-bg)]\">\n          {groupHeaders.length === 0 ? (\n            <div className=\"w-full h-full flex items-center justify-center p-4 text-center text-xs opacity-50\">\n              No instances match.\n            </div>\n          ) : (\n            <GroupedVirtuoso\n              groupCounts={groupCounts}\n              rangeChanged={(range) => setTopIndex(range.startIndex)}\n              className=\"w-full h-full scroll-smooth\"\n              groupContent={(index) => {\n                const item = groupHeaders[index];\n                if (item?.type === 'groupHeader') {\n                  return (\n                    <div\n                      className=\"px-3 h-[28px] bg-[var(--figma-color-bg-secondary)] border-y border-[var(--figma-color-border)] text-[10px] font-bold text-[var(--figma-color-text-secondary)] uppercase tracking-wider flex items-center gap-1 cursor-pointer hover:bg-[var(--figma-color-bg-hover)]\"\n                      onClick={() => toggleGroupCollapsed(item.name)}\n                    >\n                      {item.isCollapsed\n                        ? <ChevronRight className=\"w-3.5 h-3.5 opacity-50 shrink-0\" />\n                        : <ChevronDown className=\"w-3.5 h-3.5 opacity-50 shrink-0\" />}\n                      {item.name}\n                    </div>\n                  );\n                }\n                return null;\n              }}\n              itemContent={(_index) => {\n                const item = flattenedItems[_index];\n\n                // Variable Row\n                if (item.type === 'variableRow') {\n                  return (\n                    <div\n                      className=\"flex items-center justify-between px-3 h-[32px] border-b border-[var(--figma-color-border)] hover:bg-[var(--figma-color-bg-hover)] cursor-pointer group bg-[var(--figma-color-bg)]\"\n                      onClick={() => toggleVariableExpanded(item.id)}\n                    >\n                      <div className=\"flex items-center gap-2 overflow-hidden flex-1\">\n                        <div onClick={e => e.stopPropagation()} className=\"shrink-0\">\n                          <Checkbox\n                            label=\"\"\n                            checked={item.isChecked}\n                            indeterminate={item.isIndeterminate}\n                            onChange={e => toggleVariableSelection(item.id, e.target.checked)}\n                          />\n                        </div>\n\n                        {item.isExpanded\n                          ? <ChevronDown className=\"w-3.5 h-3.5 opacity-50 shrink-0\" />\n                          : <ChevronRight className=\"w-3.5 h-3.5 opacity-50 shrink-0\" />}\n                        \n                        <div className=\"flex items-center gap-1.5 overflow-hidden\">\n                          <TokenValueDisplay vType={item.variableType} value={item.value} />\n                          <VariableTypeIcon vType={item.variableType} />\n                          <span className=\"text-xs font-semibold truncate\">{item.name}</span>\n                        </div>\n                      </div>\n                      <span className=\"text-[10px] text-[var(--figma-color-text-secondary)] bg-[var(--figma-color-bg-secondary)] px-1.5 py-0.5 rounded-full shrink-0 group-hover:bg-[#0d99ff] group-hover:text-white transition-colors\">\n                        {item.count}\n                      </span>\n                    </div>\n                  );\n                }\n\n                // Frame Header\n                if (item.type === 'frameHeader') {\n                  return (\n                    <div className=\"pl-8 pr-3 py-1.5 bg-[var(--figma-color-bg)] text-[10px] font-medium text-[var(--figma-color-text-tertiary)] flex items-center gap-1 opacity-80 mt-1\">\n                      <div className=\"w-1 h-1 rounded-full bg-current opacity-50\" />\n                      {item.name}\n                    </div>\n                  );\n                }\n\n                // Node Row\n                if (item.type === 'nodeRow') {\n                  const n = item.node;\n                  const isChecked = item.isChecked;\n                  const compositeKey = `${n.id}::${n.variableName}::${n.groupName}`;\n                  const status = nodeStatus.get(compositeKey) ?? 'idle';\n                  const errMsg = nodeErrors.get(compositeKey);\n                  const isFading = fadingIds.has(compositeKey);\n\n                  return (\n                    <div\n                      className={cn(\n                        \"group flex items-center gap-2 pl-8 pr-3 py-1.5 cursor-pointer transition-all duration-300 bg-[var(--figma-color-bg)]\",\n                        status === 'success' && \"bg-green-500/10\",\n                        status === 'error' && \"bg-red-500/10\",\n                        status === 'pending' && \"opacity-50 pointer-events-none\",\n                        isFading && \"opacity-0\",\n                        (n.isLocked || n.isHidden) && status === 'idle' && \"opacity-60\",\n                        \"hover:bg-[var(--figma-color-bg-hover)]\",\n                      )}\n                      onClick={() => handleZoom(n.id)}\n                      title={errMsg}\n                    >\n                      <div onClick={e => e.stopPropagation()} className=\"shrink-0 pt-0.5\">\n                        <Checkbox\n                          label=\"\"\n                          checked={isChecked}\n                          onChange={e => toggleNodeSelection(compositeKey, e.target.checked)}\n                          disabled={status === 'pending'}\n                        />\n                      </div>\n                      <div className=\"flex-1 min-w-0 flex items-center justify-between\">\n                        <div className=\"flex items-center gap-1.5 truncate\">\n                          {n.type === 'COMPONENT' && <Component className=\"w-3 h-3 text-purple-500 shrink-0\" />}\n                          {n.type === 'INSTANCE' && <Box className=\"w-3 h-3 text-purple-400 shrink-0\" />}\n                          {n.type === 'TEXT' && <Type className=\"w-3 h-3 text-blue-400 shrink-0\" />}\n                          {(n.type === 'RECTANGLE' || n.type === 'ELLIPSE' || n.type === 'POLYGON' || n.type === 'STAR' || n.type === 'VECTOR') && <Square className=\"w-3 h-3 text-[var(--figma-color-icon-secondary)] shrink-0\" />}\n                          {(n.type === 'FRAME' || n.type === 'GROUP' || n.type === 'SECTION') && <Frame className=\"w-3 h-3 text-[var(--figma-color-icon-secondary)] shrink-0\" />}\n                          <span className={cn(\n                            \"text-[11px] truncate leading-snug group-hover:text-[#0d99ff] transition-colors\",\n                            status === 'error' && \"text-red-500 group-hover:text-red-400\",\n                          )}>\n                            {n.name}\n                          </span>\n                        </div>\n\n                        <div className=\"flex items-center gap-1.5 shrink-0 pl-2\">\n                          {/* Status indicators */}\n                          {status === 'success' && <CheckCircle2 className=\"w-3 h-3 text-green-500\" />}\n                          {status === 'error' && (\n                            <span title={errMsg}>\n                              <XCircle className=\"w-3 h-3 text-red-500\" />\n                            </span>\n                          )}\n\n                          {/* Idle state icons */}\n                          {status === 'idle' && n.isLocked && <Lock className=\"w-3 h-3 text-red-400\" />}\n                          {status === 'idle' && n.isHidden && <EyeOff className=\"w-3 h-3 text-gray-400\" />}\n\n                          {/* Hover Target Icon */}\n                          {status === 'idle' && (\n                            <button className=\"opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all text-[#0d99ff] hover:bg-[#0d99ff] hover:text-white\">\n                              <Target className=\"w-3 h-3\" />\n                            </button>\n                          )}\n                        </div>\n                      </div>\n                    </div>\n                  );\n                }\n\n                return null;\n              }}\n            />\n          )}\n\n          {/* Sticky Variable Header Overlay */}\n          {activeOverlayVariable && activeOverlayVariable.type === 'variableRow' && activeOverlayVariable.isExpanded && (\n            <div className=\"absolute top-[28px] left-0 right-0 z-[15] pointer-events-auto bg-[var(--figma-color-bg)] shadow-[0_1px_3px_rgba(0,0,0,0.05)]\">\n              <div\n                className=\"flex items-center justify-between px-3 h-[32px] border-b border-[var(--figma-color-border)] cursor-pointer group hover:bg-[var(--figma-color-bg-hover)]\"\n                onClick={() => toggleVariableExpanded(activeOverlayVariable.id)}\n              >\n                <div className=\"flex items-center gap-2 overflow-hidden flex-1\">\n                  <div onClick={e => e.stopPropagation()} className=\"shrink-0\">\n                    <Checkbox\n                      label=\"\"\n                      checked={activeOverlayVariable.isChecked}\n                      indeterminate={activeOverlayVariable.isIndeterminate}\n                      onChange={e => toggleVariableSelection(activeOverlayVariable.id, e.target.checked)}\n                    />\n                  </div>\n                  <ChevronDown className=\"w-3.5 h-3.5 opacity-50 shrink-0\" />\n                  <div className=\"flex items-center gap-1.5 overflow-hidden\">\n                    <TokenValueDisplay vType={activeOverlayVariable.variableType} value={activeOverlayVariable.value} />\n                    <VariableTypeIcon vType={activeOverlayVariable.variableType} />\n                    <span className=\"text-xs font-semibold truncate\">{activeOverlayVariable.name}</span>\n                  </div>\n                </div>\n                <span className=\"text-[10px] text-[var(--figma-color-text-secondary)] bg-[var(--figma-color-bg-secondary)] px-1.5 py-0.5 rounded-full shrink-0 group-hover:bg-[#0d99ff] group-hover:text-white transition-colors\">\n                  {activeOverlayVariable.count}\n                </span>\n              </div>\n            </div>\n          )}\n        </div>\n      </div>\n\n    </div>\n  );\n}\n"}, {"name": "design_prd.md", "type": "text", "content": "# \u4ea4\u4e92\u8bf4\u660e\u6587\u6863 (Interaction PRD) - Tokens in Page\n\n> \u65e8\u5728\u4e3a\u7814\u53d1\u548c\u6d4b\u8bd5\u8865\u5145\u89c6\u89c9\u9a8c\u6536\u6807\u51c6\u4e0e\u4ea4\u4e92\u8fb9\u754c\uff08\u72b6\u6001\u3001\u5f02\u5e38\u6d41\u8f6c\u3001\u9f20\u6807/\u952e\u76d8\u884c\u4e3a\uff09\u3002\u672c\u6587\u6863\u7d27\u5bc6\u8d34\u5408\u60a8\u5df2\u6709\u7684 Figma \u8bbe\u8ba1\u539f\u578b\uff0c\u5e76\u9488\u5bf9\u6b64\u524d PRD \u4e2d\u786e\u7acb\u7684\u201c\u6e05\u7406 Unlinked\u201d\u3001\u201cMain Component \u6eaf\u6e90\u201d\u7b49\u8fdb\u9636\u5ba1\u67e5\u76ee\u6807\u8fdb\u884c\u4e86\u4ea4\u4e92\u903b\u8f91\u8865\u5168\u3002\n\n## 1. \u5168\u5c40\u89c6\u53e3\u53ca\u6846\u67b6\u89c4\u8303\n- **\u9ed8\u8ba4\u89c6\u53e3 (Viewport)**: `Width 400px`, `Height 480px` (\u5efa\u8bae\u5f00\u542f\u62d6\u62fd Resizing \u6743\u9650\uff0c\u53d7\u9650\u4e8e\u5217\u8868\u957f\u6570\u636e\u7684\u5305\u5bb9\u6027\uff0c\u6700\u5c0f\u9ad8\u5ea6\u9650\u5b9a\u5728 `300px`\uff0c\u6700\u5927\u5bbd/\u9ad8\u4e0d\u8bbe\u9650\u4ee5\u4fbf\u63d0\u4f9b\u66f4\u597d\u7684\u5217\u8868\u5448\u73b0)\u3002\n- **\u6df1\u8272\u6a21\u5f0f (Dark Mode)**: \u63d2\u4ef6\u5168\u7cfb\u4f7f\u7528 CSS \u539f\u751f\u5a92\u4f53\u67e5\u8be2\u76f4\u63a5\u8ddf\u968f\u5bbf\u4e3b Figma UI \u7684\u4eae\u6697\u8272\u504f\u597d\uff0c\u4e0d\u63d0\u4f9b\u5185\u90e8\u624b\u52a8\u5207\u6362\u5f00\u5173\u4ee5\u4fdd\u6301\u539f\u751f\u6c89\u6d78\u611f\u3002\n\n## 2. \u6838\u5fc3\u9875\u9762\u6d41\u8f6c (Page Workflows)\n\n### 2.1 \u9996\u5c4f\uff1a\u5165\u53e3\u4e0e\u626b\u63cf\u914d\u7f6e\u9875 (Setup & Filter)\n> **\u4ea4\u4e92\u7ec4\u4ef6\u4e0e\u5bf9\u9f50**\uff1a\u4e3a\u63d0\u5347\u70b9\u51fb\u6548\u7387\uff0cType (\u5c5e\u6027)\u3001Source (\u6765\u6e90) \u53ca Layer Types (\u5c42\u7ea7) \u7684\u591a\u9009\u4ea4\u4e92\u7edf\u4e00\u91c7\u7528 **`ToggleChip` (\u80f6\u56ca\u5207\u6362\u6309\u94ae)** \u66ff\u4ee3\u4f20\u7edf\u7684 Checkbox\u3002\n\n- **\u9875\u9762\u7ed3\u6784**\uff1a\u4f5c\u4e3a\u63d2\u4ef6\u5524\u8d77\u540e\u7684\u9ed8\u8ba4\u5c55\u793a\u9875\uff0c\u5b83\u627f\u8f7d\u5168\u90e8\u8fc7\u6ee4\u7f51\u3002\n  - **Type (\u5c5e\u6027\u8fc7\u6ee4)**: \u4f7f\u7528 Select \u4e0b\u62c9\u83dc\u5355\u63a7\u4ef6\u5c01\u88c5\uff08\u5305\u542b All, Variables, Style\uff09\uff0c\u7cbe\u7b80\u4e3b\u5c4f\u7a7a\u95f4\u3002\n  - **Source (\u6765\u6e90\u8fc7\u6ee4)**: \u5141\u8bb8\u7ec4\u5408\u8fc7\u6ee4 `Local`, `Linked`, `Unlinked` \u4ee5\u53ca\u5df2\u88ab\u5f7b\u5e95\u79fb\u9664\u9020\u6210\u7684 **`Missing`** \u5f15\u7528\u3002`Missing` \u6807\u7b7e\u53d6\u6d88\u8b66\u793a\u7ea2\u6587\u6848\u4ee5\u9632\u5f15\u53d1\u4e0d\u5fc5\u8981\u7684\u8bef\u5bfc\u7126\u8651\u3002\n  - **\u6279\u91cf\u9009\u62e9 (Select/Deselect All)**\uff1aSource / Layer Types \u9009\u9879\u7ec4\u53f3\u4e0a\u4fa7\u63d0\u4f9b\u663e\u5f0f\u7684 `Select All` \u6309\u94ae\u3002\n  - **\u7ec4\u4ef6\u89c6\u89c9\u964d\u566a**\uff1a\u9009\u4e2d\u7684 `ToggleChip` \u9632\u649e\u8272\u5904\u7406\uff0c\u5f03\u7528\u5927\u9762\u79ef Fill \u8272\u5757\uff0c\u8f6c\u7528\u8f7b\u76c8\u7684\u54c1\u724c\u8272\u8fb9\u6846\u4e0e\u6d45\u900f\u660e\u5e95\u8272\uff0c\u4e0e\u5e95\u90e8\u7684 `Scan` \u4e3b\u6309\u94ae\u62c9\u5f00\u89c6\u89c9\u5c42\u7ea7\u3002\n  - **Layer Type (\u901a\u900f\u5339\u914d\u5224\u5b9a)**: \u5305\u542b `All`, `Component`, `Instance`, `Text`, `Shape`, `Frame` \u7b49\u9009\u9879\u3002\u5404\u9009\u9879\u56fa\u5b9a\u7ef4\u62a4\u4e25\u6574\u7684 **3-column \u7f51\u683c\u5e03\u5c40**\uff0c\u4fdd\u969c\u5217\u8868\u5bf9\u9f50\u7f8e\u611f\u3002**\u6ce8\u610f\u5339\u914d\u964d\u7ea7\u903b\u8f91**\uff1a\u53ea\u8981\u7ec4\u4ef6/\u5bb9\u5668\u7684\u4e0a\u6e38\u547d\u4e2d\u4e86\u7528\u6237\u7684\u52fe\u9009\u9879\uff0c\u8be5\u7ec4\u4ef6\u6216\u5bb9\u5668\u5185\u5305\u88f9\u7684\u6240\u6709\u6df1\u5c42\u5b50\u4ee3\u8282\u70b9\u5747\u88ab\u89c6\u4e3a\u201c\u8fde\u5e26\u547d\u4e2d\u201d\u3002\u4fdd\u8bc1\u7ed3\u6784\u5316\u67e5\u8be2\u65f6\u4e0d\u4f1a\u56e0\u4e3a\u5b50\u56fe\u5c42\u7c7b\u578b\u4e0d\u5bf9\u800c\u6f0f\u626b\u5176\u4e0a\u7ed1\u5b9a\u7684 token\u3002\n  - **\u72b6\u6001\u6301\u4e45\u5316 (State Persistence)**: \u4ece\u6b21\u7ea7\u9875\u9762 (Inventory) \u9000\u56de\u9996\u5c4f\u65f6\uff0c\u4fdd\u7559\u5e76\u7ee7\u627f\u4e0a\u4e00\u6b21\u6210\u529f\u53d1\u8d77\u7684\u626b\u63cf\u53c2\u6570\u52fe\u9009\u9879\u3002\n- **Primary Action (\u626b\u63cf\u6267\u884c)**:\n  - \u70b9\u51fb `Scan` \u6309\u94ae\u540e\uff0c\u6309\u94ae\u81ea\u8eab\u6587\u6848\u6216\u56fe\u6807\u9700\u5207\u6362\u4e3a Loading \u6001\uff08\u5982 Spinner\uff09\uff0c\u6b64\u523b\u7ed9\u5168\u5c4f\u52a0\u4e0a\u4e00\u4e2a\u9690\u5f62\u7684 Overlay \u4ee5\u62e6\u622a\u4efb\u4f55\u5bf9\u7b5b\u9009\u5668\u7684\u6b21\u751f\u70b9\u51fb\u4fee\u6539\u3002\n  - **\u4e2d\u6b62\u626b\u63cf (Cancel Scan)**\uff1a\u5728 Loading \u72b6\u6001\u65c1\u8fb9\u6216\u4e0b\u65b9\u63d0\u4f9b\u4e00\u4e2a\u660e\u786e\u7684 `Cancel Scan` \u6309\u94ae\u3002\u82e5\u626b\u63cf\u8017\u65f6\u8fc7\u957f\uff0c\u7528\u6237\u53ef\u968f\u65f6\u4e2d\u6b62\uff0c\u91ca\u653e\u7ebf\u7a0b\u963b\u65ad\u5e76\u91cd\u7f6e\u754c\u9762\u3002\n\n### 2.2 \u8fc7\u6e21\u6001\u4e0e\u7a7a\u6570\u636e (Empty States)\n- **\u626b\u63cf\u7ed3\u679c\u4e3a\u7a7a\uff08\u8fd4\u56de 0\uff09**\uff1a\u7559\u5728\u5f53\u524d\u9996\u5c4f\uff0c\u5728 `Scan` \u6309\u94ae\u4e0b\u65b9\u6216\u9876\u90e8\u663e\u793a\u4e00\u4e2a\u9192\u76ee\u7684\u8b66\u544a Toast\uff1a\u201c\u5f53\u524d\u8fc7\u6ee4\u6761\u4ef6\u4e0b\u672a\u53d1\u73b0\u7ed3\u679c\uff0c\u8bf7\u8c03\u6574\u7b5b\u9009\u6761\u4ef6\u540e\u91cd\u8bd5\u3002\u201d\n- **\u626b\u63cf\u6210\u529f\u4e14\u6709\u6570\u636e**\uff1a\u5e73\u6ed1\u8df3\u8f6c\uff08\u63a8\u5165\u52a8\u753b Slide-in \u6216\u76f4\u63a5\u95ea\u5207\uff09\u81f3\u4e8c\u7ea7\u201c\u8d44\u4ea7\u5217\u8868\u9875\u201d\u3002\n  - **\u8fd4\u56de\u4e0e\u91cd\u7f6e**\uff1a\u9700\u5728\u4e8c\u7ea7\u5217\u8868\u9876\u90e8\u5e38\u9a7b `< Back to Filter` \u6309\u94ae\u6216\u6298\u53e0\u62e6\uff0c\u5141\u8bb8\u7528\u6237\u968f\u65f6\u9000\u56de\u9996\u5c4f\u91cd\u65b0\u9009\u62e9\u8303\u56f4\u3002\n\n## 3. \u4e8c\u7ea7\u4e0e\u4e09\u7ea7\uff1a\u5ba1\u67e5\u4e0e\u8282\u70b9\u5f52\u5c5e (Inventory & Node Details)\n\n### 3.1 \u4e8c\u7ea7\uff1a\u53d8\u91cf\u6c47\u603b\u5217\u8868 (Inventory List)\n- **\u5168\u5c40\u64cd\u4f5c\u533a (Global Actions)**\uff1a\n  - **\u5237\u65b0\u673a\u5236\u4e0e\u52a8\u6001\u76d1\u542c**\uff1a\n    - \u5217\u8868\u9876\u90e8\u63d0\u4f9b\u5e26 `Spin` \u8f6c\u5708\u52a8\u6548\u53cd\u9988\u7684 `\ud83d\udd04 Refresh` \u6309\u94ae\u3002\n    - **\u94a9\u5b50\u9759\u9ed8\u8054\u52a8\u4e0e\u72b6\u6001\u9501\u5b9a**\uff1a\u53ea\u8981\u5f53\u524d Scope \u4e3a `Selection` \u6216 `Current Page`\uff0c\u5f53 Figma \u629b\u51fa\u5bf9\u5e94\u7684 `selectionchange` \u6216 `currentpagechange` \u4e8b\u4ef6\u65f6\uff0c\u63d2\u4ef6\u9690\u5f0f\u89e6\u53d1\u4e00\u6b21\u540e\u53f0\u7ea7\u5237\u65b0\u4ee5\u4fdd\u6301\u6570\u636e\u9c9c\u6d3b\u5ea6\u3002**\u4ea4\u4e92\u51b2\u7a81\u8fc7\u6ee4**\uff1a\u7cfb\u7edf\u5fc5\u987b\u80fd\u8bc6\u522b\u7531\u63d2\u4ef6\u53d1\u8d77\u7684 `zoom-to-node` \u5b9a\u4f4d\u64cd\u4f5c\uff0c\u5e76\u5728\u6b64\u65f6**\u9501\u5b9a\u5217\u8868\u72b6\u6001**\uff0c\u907f\u514d\u56e0\u9009\u4e2d\u9879\u53d8\u66f4\u800c\u89e6\u53d1\u975e\u9884\u671f\u7684\u5217\u8868\u91cd\u8f7d\uff0c\u786e\u4fdd\u7528\u6237\u7684\u5ba1\u8ba1\u6d41\u4e0d\u88ab\u4e2d\u65ad\u3002\n  - **\u5206\u7c7b\u8fc7\u6ee4 (Type Filter)**\uff1a\u641c\u7d22\u680f\u4e0a\u65b9\u72ec\u7acb\u4e00\u680f\u53ca\u5305\u542b\u4e0a\u5212\u7ebf\uff08Border-top\uff09\u4ee5\u533a\u5206\u9876\u90e8\u5bfc\u822a\uff0c\u63d0\u4f9b All, Color, Number, String, Boolean \u9009\u9879\uff0cAll \u4e3a\u9ed8\u8ba4\u9009\u4e2d\u9879\u3002\u5f53\u67d0\u4e00 Variable Group \u6216 Collection \u5728\u8fc7\u6ee4\u540e\u4e0d\u5305\u542b\u4efb\u4f55\u5339\u914d\u7c7b\u578b\u7684\u53d8\u91cf\u65f6\uff0c\u5176\u5bf9\u5e94\u7684\u6807\u9898\u884c\u81ea\u52a8\u9690\u85cf\uff0c\u4e0d\u5360\u636e\u754c\u9762\u7a7a\u95f4\u3002\n  - **\u53d8\u91cf\u641c\u7d22 (Keyword Search)**\uff1a\u63d0\u4f9b\u4e00\u4e2a\u641c\u7d22\u6846\uff08Search Variables by Keyword\uff09\uff0c\u5141\u8bb8\u6309\u540d\u79f0\u5b9e\u65f6\u68c0\u7d22\u4e0e\u8fc7\u6ee4\u5f53\u524d\u5217\u8868\u5185\u7684\u53d8\u91cf\u3002\u641c\u7d22\u8fc7\u6ee4\u4e0e\u5206\u7c7b\u8fc7\u6ee4\u6267\u884c \"AND\" (\u4e14) \u903b\u8f91\uff1a\u663e\u793a\u7ed3\u679c = (\u5339\u914d\u6240\u9009\u7c7b\u578b) && (\u5339\u914d\u641c\u7d22\u5173\u952e\u8bcd)\u3002\n  - **\u5bfc\u51fa\u529f\u80fd (Export to JSON)**\uff1a\n    - **\u4ea4\u4e92\u903b\u8f91**\uff1a\u70b9\u51fb\u540e\u63d0\u53d6\u5f53\u524d\u8fc7\u6ee4\u89c6\u56fe\u4e0b\u7684\u6240\u6709\u53d8\u91cf\u6570\u636e\uff0c\u5e76\u4ee5 JSON \u5b57\u7b26\u4e32\u5f62\u5f0f\u53d1\u9001\u81f3\u63d2\u4ef6\u540e\u53f0\u3002\n    - **\u72b6\u6001\u8986\u76d6 (State Matrix)**\uff1a\n      - **Idle**\uff1a\u5c55\u793a `Download` \u56fe\u6807\uff0c\u80cc\u666f\u8ddf\u968f\u5168\u5c40\u6309\u94ae\u89c4\u8303\u3002\n      - **Loading**\uff1a\u6309\u94ae\u5207\u6362\u4e3a `RefreshCw` \u65cb\u8f6c\u52a8\u753b\uff0c\u4e14\u5904\u4e8e\u7981\u7528\u72b6\u6001\u4ee5\u9632\u91cd\u590d\u70b9\u51fb\u3002\n      - **Success**\uff1a\u5904\u7406\u5b8c\u6210\u540e\uff0c\u6309\u94ae\u5207\u6362\u4e3a\u7eff\u8272 `Check` \u56fe\u6807\u5e76\u4fdd\u6301 2s\uff0c\u968f\u540e\u81ea\u52a8\u91cd\u7f6e\u4e3a Idle \u6001\u3002\n      - **Error**\uff1a\u82e5\u5bfc\u51fa\u5931\u8d25\uff08\u5982\u5185\u5b58\u6ea2\u51fa\uff09\uff0c\u4e0a\u629b\u9519\u8bef Toast\u3002\n- **\u591a\u5c42\u7ea7\u5bfc\u822a\u5e03\u5c40**\uff1a\n  - **\u5de6\u4fa7\u8fb9\u680f (Sidebar)**\uff1a\u5c55\u793a Figma Variables/Styles \u7684 **Collections** \u7ed3\u6784\u3002**\u4fa7\u680f\u5bbd\u5ea6\u56fa\u5b9a\u4e3a `120px`**\uff0c\u4ee5\u5bb9\u7eb3\u8f83\u957f\u7684\u96c6\u5408\u540d\u79f0\uff0c\u9632\u6b62\u6587\u5b57\u622a\u65ad\u3002\n    - **\u6392\u5e8f\u4f18\u5148\u7ea7 (Priority)**\uff1a`Variable Collections` (\u6743\u91cd 1) > `Styles/Typography` (\u6743\u91cd 2) > `Missing` (\u6743\u91cd 3) > `Hardcoded` (\u6743\u91cd 4)\u3002\u786e\u4fdd\u5e38\u89c4\u8d44\u4ea7\u4f18\u5148\u663e\u793a\uff0c\u5f02\u5e38\u7c7b\u8d44\u4ea7\uff08Missing/Hardcode\uff09\u5e38\u9a7b\u5e95\u90e8\u3002**\u540c\u4f18\u5148\u7ea7\u9879\u5185\u90e8\u6309\u5b57\u6bcd\u5e8f (Alphabetical) \u6392\u5e8f**\u3002\n    - **\u89c6\u89c9\u5dee\u5f02\u5316 (Visual Styles)**: \n      - **Missing**\uff1a\u6587\u672c\u53ca\u56fe\u6807\u91c7\u7528\u7ea2\u8272 (`#f24822`)\uff0c\u914d\u4ee5 `CircleHelp` \u56fe\u6807\u3002\n      - **Hardcoded**\uff1a\u91c7\u7528\u8f85\u52a9\u8272 (`text-tertiary`)\uff0c\u914d\u4ee5 `Unlink` \u56fe\u6807\u3002\n      - **Active \u6001**\uff1a\u9009\u4e2d\u9879\u80cc\u666f\u5207\u6362\u4e3a\u54c1\u724c\u84dd (`#0d99ff`)\uff0c\u6587\u5b57\u4e0e\u56fe\u6807\u7edf\u4e00\u53cd\u767d\u3002\n  - **\u53f3\u4fa7\u4e3b\u4f53 (\u4e3b\u5185\u5bb9\u533a)**\uff1a\u91c7\u7528\u201c\u6298\u53e0\u9762\u677f\uff08Accordion\uff09\u201d\u5f62\u6001\uff0c\u6309 **Variable Group** \u540d\u79f0\u8fdb\u884c\u7eb5\u5411\u6392\u5217\u3002**Variable Group \u73b0\u5df2\u652f\u6301\u81ea\u7531\u5730\u5c55\u5f00\u4e0e\u6536\u8d77**\u3002\u5f53\u5c55\u5f00\u5185\u5c42\u540e\uff0c\u5916\u5c42\u7684 Variable Group \u4e0e Variable \u6807\u9898\u884c\u5747\u987b\u542f\u52a8 **Sticky to top\uff08\u5438\u9876\u4fdd\u62a4\uff09**\uff0c\u5373\u4fbf\u5728\u6df1\u5ea6\u6ed1\u52a8\u65f6\u4e5f\u6e05\u6670\u66b4\u9732\u51fa\u6240\u67e5\u770b\u5c42\u7ea7\u7684\u7236\u7ea7\u7ebf\u7d22\u3002\n- **Global \u9ed8\u8ba4\u7ec4\u515c\u5e95\u903b\u8f91**\uff1a\u82e5\u89e3\u6790\u5230\u7684\u53d8\u91cf\u5e76\u672a\u88ab\u5206\u914d\u81f3\u4efb\u4f55\u5177\u4f53\u7684 Variable Group\uff0c\u7cfb\u7edf\u987b\u5f3a\u5236\u5c06\u5176\u5f52\u7c7b\u81f3\u540d\u4e3a **\u201cGlobal\u201d** \u7684\u9762\u677f\u7ec4\u4e2d\uff0c\u5e76\u5c06\u8be5\u7ec4**\u9ed8\u8ba4\u60ac\u505c\u5728\u53f3\u4fa7\u5217\u8868\u7684\u6700\u9876\u90e8**\uff0c\u786e\u4fdd\u6563\u4e71\u53d8\u91cf\u88ab\u4f18\u5148\u5904\u7406\u3002\n- **\u89c6\u89c9\u53ef\u8bfb\u6027\u5f3a\u5316 (Visual Icons)**:\n  - **\u52a8\u6001\u5c5e\u6027\u7c7b\u578b\u6807\u8bc6**\uff1a\u57fa\u4e8e\u5e95\u5c42\u8bc6\u522b\u7684 `variableType` \u8fdb\u884c\u5dee\u5f02\u5316\u6e32\u67d3\u3002\n    - **\u516d\u8fb9\u5f62\u56fe\u6807 (Hexagon)**\uff1a\u6240\u6709 Variable \u7c7b\u578b\u7edf\u4e00\u4f7f\u7528 Figma \u539f\u751f\u98ce\u683c\u7684\u516d\u8fb9\u5f62\u56fe\u6807\uff08\u5c3a\u5bf8 10x10\uff0c\u900f\u660e\u5ea6 40%\uff09\uff0c\u4f4d\u7f6e\u4f4d\u4e8e\u6570\u503c\u53f3\u4fa7\uff1a`[\u6570\u503c] [\u56fe\u6807] [\u53d8\u91cf\u540d]`\u3002\n    - **Typography**\uff1a\u663e\u793a\u4e3a `Aa` \u6587\u672c\u6807\u8bc6\u3002\n    - **Missing**\uff1a\u663e\u793a\u4e3a\u95ee\u53f7/\u5e2e\u52a9\u56fe\u6807 (`CircleHelp`)\uff0c\u989c\u8272\u4e3a\u7ea2\u8272 (`#f24822`)\u3002\n  - **\u6570\u503c\u5c55\u793a\u89c4\u8303 (Token Value)**\uff1a\n    - **Badge \u6837\u5f0f**\uff1a`String`\u3001`Number`\u3001`Boolean` \u7edf\u4e00\u91c7\u7528\u5706\u89d2\u77e9\u5f62 Badge\uff0cNumber/Boolean \u4fdd\u6301\u5168\u5927\u5199\u52a0\u7c97\u3002\n    - **\u989c\u8272\u5706\u5757**\uff1a`Color` \u7c7b\u578b\u4ec5\u663e\u793a**\u5e26\u7ec6\u5fae\u9634\u5f71\u7684\u5706\u5f62\u8272\u5757**\uff0c\u4e0d\u518d\u663e\u793a Hex \u5b57\u7b26\u4e32\u3002\n  - **\u56fe\u5c42\u7c7b\u578b\u6807\u8bc6**\uff1a\u5404\u5177\u4f53\u8282\u70b9\u4e4b\u524d\uff08Component\uff0cInstance\uff0cText\uff0cShape\uff0cFrame \u7b49\uff09\u5747\u9700\u6e32\u67d3\u539f\u751f Figma \u98ce\u683c\u6216\u5bd3\u610f\u660e\u786e\u7684\u7ed3\u6784\u56fe\u6807\u3002\n- **\u4f4d\u7f6e\u8bc6\u522b\u63d0\u793a**\uff1a\u5728\u8282\u70b9\u5217\u8868\u7684 Frame \u6807\u9898\u4e2d\uff0c\u663e\u5f0f\u5305\u542b\u6240\u5c5e\u7684 **Page \u540d\u79f0**\uff0c\u683c\u5f0f\u4e3a\uff1a`Page Name / Frame Name` (\u4f8b\u5982\uff1a`UI Toolkit / Base Components`)\u3002\n- **\u805a\u5408\u70b9\u51fb\u4e0e\u4e0b\u94bb\u5c55\u5f00 (Expand to Nodes)**\uff1a\n  - **\u5f15\u7528\u8ba1\u6570 (Citation Count)**\uff1a\u6bcf\u4e2a\u5c42\u7ea7\u53d8\u91cf\u6761\u76ee\u7684\u53f3\u4fa7\uff0c\u6e05\u6670\u5c55\u73b0\u76ee\u524d\u8be5\u6587\u4ef6\u4e2d\u5f15\u7528\u5b83\u7684\u603b\u6b21\u6570\uff08\u5982 `Primary Blue (4)`\uff09\u3002\n  - **\u70b9\u51fb\u884c\u4e3a**\uff1a\u4e8c\u7ea7\u5217\u8868\u4e2d\u7684\u53d8\u91cf\u884c**\u4e0d\u5e94\u76f4\u63a5\u89e6\u53d1\u5355\u4f53\u753b\u5e03\u8df3\u8f6c**\uff08\u56e0\u4e3a 1 \u4e2a\u5f15\u7528\u5927\u4e8e 1 \u7684\u53d8\u91cf\u5bf9\u5e94\u4e86\u753b\u5e03\u4e0a\u7684 N \u4e2a\u6563\u843d\u56fe\u5c42\uff09\u3002\u70b9\u51fb\u8be5\u53d8\u91cf\u884c\uff0c\u5e94\u5f53\u662f\u201c\u5411\u4e0b\u5c55\u5f00 (Expand)\u201d\u5c55\u793a\u4e00\u4e2a\u5b50\u96c6\u5217\u8868\uff0c\u6216\u5e73\u6ed1\u63a8\u5165\u201c\u7b2c\u4e09\u7ea7\u8282\u70b9\u660e\u7ec6\u9875\u201d\uff0c\u66b4\u9732\u51fa\u8fd9 4 \u4e2a\u5177\u4f53\u7684\u5f15\u7528\u56fe\u5c42\u3002\n- **\u6027\u80fd\u9632\u5d29\u89c4\u8303 (Virtual Scroll)**\uff1a\u53f3\u4fa7\u4e3b\u4f53\u7684\u6298\u53e0\u5217\u8868\u7531\u4e8e\u627f\u8f7d\u4e86\u6f5c\u5728\u7684\u4e07\u7ea7\u6570\u636e\uff0c\u5fc5\u987b\u5e95\u5c42\u652f\u6301**\u865a\u62df\u6eda\u52a8\uff08Virtual Scroll\uff09**\u3002\n\n### 3.2 \u4e09\u7ea7\uff1a\u8282\u70b9\u7ea7\u5b9a\u4f4d\u4e0e\u753b\u5e03\u8054\u52a8 (Layer Nodes & Zoom In)\n> **\u903b\u8f91\u52d8\u8bef**\uff1a\u201c\u5b9a\u4f4d\u4e0e\u753b\u5e03\u8054\u52a8\u201d\u7684\u7cbe\u51c6\u89e6\u53d1\u70b9\uff0c\u5fc5\u987b\u662f\u5728\u6811\u72b6\u7ed3\u6784\u7684\u6700\u5e95\u7aef\u2014\u2014\u4e5f\u5c31\u662f**\u5177\u4f53\u7684\u56fe\u5c42\u8282\u70b9 (Layer Node)** \u7ea7\u522b\u4e0a\u3002\n\n- **\u660e\u7ec6\u5217\u8868\u5448\u73b0**\uff1a\u5728\u5c55\u5f00\u4e86\u67d0\u4e00\u7279\u5b9a\u53d8\u91cf\uff08\u6216\u8fdb\u5165\u4e09\u7ea7\uff09\u540e\uff0c\u6b64\u533a\u57df\u5448\u73b0\u6240\u6709\u4f7f\u7528\u4e86\u8be5\u53d8\u91cf\u7684\u56fe\u5c42\u5bf9\u8c61\uff0c\u5efa\u8bae\u6309\u6240\u5728 Frame (\u753b\u677f) \u7ec4\u7ec7\u3002\n- **\u660e\u7ec6\u5217\u8868\u5c42\u7ea7\u51cf\u8d1f (Visual Lightness)**\uff1a\u4e09\u7ea7\u56fe\u5c42\uff08Layer Object\uff09\u7684\u884c\u5bb9\u5668\u5e94\u5f31\u5316\u8fb9\u6846\u539a\u5ea6\u4e0e\u80cc\u666f\u5757\u9762\u79ef\uff0c\u907f\u514d\u5c42\u7ea7\u8fc7\u6df1\u65f6\u7684\u89c6\u89c9\u81c3\u80bf\u3002\n- **\u6307\u793a\u5668\u4e0e Hover \u5c42**\uff1a\u9f20\u6807\u60ac\u505c\u8be5\u8282\u70b9\u884c\u65f6\uff0c\u56fe\u5c42\u6587\u672c\u81ea\u8eab\u5448\u73b0\u54c1\u724c\u8272\u9ad8\u4eae\u8f6c\u6362\uff0c\u5e76\u5728\u884c\u672b\u5feb\u901f\u5524\u5165\u54c1\u724c\u8272\u7684\u201c\u7784\u51c6\uff08Target\uff09\u201d\u56fe\u6807\u3002\u6700\u524d\u9762\u7684\u56fe\u5c42\u7c7b\u578b Icon \u4fdd\u6301\u4e2d\u6027\u9759\u9ed8\uff0c\u9632\u6b62\u8272\u5f69\u6ea2\u51fa\u3002\n- **Click \u89e6\u53d1\u8054\u52a8**\uff1a\n  - \u5355\u51fb\u56fe\u5c42\u8282\u70b9\u884c\uff08\u975e Checkbox \u533a\u57df\uff09\uff0c\u89e6\u53d1\u9ad8\u7cbe\u5ea6\u5b9a\u4f4d\uff1aFigma \u753b\u677f\u81ea\u52a8\u8ba1\u7b97\u5750\u6807\uff0c\u77ac\u95f4\u5c45\u4e2d\u653e\u5927\u81f3\u8be5\u552f\u4e00\u56fe\u5c42\uff0c\u5e76\u6267\u884c `Selected` \u9ad8\u4eae\u9009\u4e2d\u3002\n  - **\u54cd\u5e94\u53bb\u91cd**\uff1a\u5982\u679c\u7528\u6237\u5df2\u7ecf\u5728\u660e\u7ec6\u5217\u8868\u4e2d\u9ad8\u9891\u70b9\u51fb\u5207\u6362\u591a\u4e2a\u56fe\u5c42\uff0c\u89c6\u56fe\u7f29\u653e\u5e94\u629b\u5f03\u6ed1\u884c\u8fc7\u6e21\u6001\uff0c\u76f4\u63a5\u95ea\u5207\u5230\u76ee\u6807\uff0c\u4ee5\u9632\u5f15\u8d77\u6655\u7729\u3002\n\n## 4. \u6279\u91cf\u6392\u9519\u533a (Batch Actions)\n\n### 4.1 \u52a8\u4f5c\u89e6\u53d1\u5c42\u53ef\u89c1\u6027\u4e0e\u7ec4\u5185\u5168\u9009 (Group Selection)\n- **\u52a8\u4f5c\u6309\u94ae\u6fc0\u6d3b\u6761\u4ef6**\uff1a\u52a8\u4f5c\u6309\u94ae\uff08Replace \u548c Detach\uff09\u53ea\u6709\u5728\u5217\u8868\u4e2d**\u81f3\u5c11\u7531 Checkbox \u52fe\u9009\u4e86 `>= 1` \u4e2a\u56fe\u5c42\u8282\u70b9**\u65f6\u624d\u4f1a\u6fc0\u6d3b\u3002\n- **\u672a\u52fe\u9009\u6001**\uff1a\u672a\u52fe\u9009\u4efb\u4f55\u9879\u76ee\u65f6\uff0c\u8fd9\u90e8\u5206 UI \u5e94\u4fdd\u6301\u7981\u7528\uff08Opacity 50%\uff09\u4ee5\u9632\u8bef\u89e6\u3002\n- **Variable \u5c42\u7ea7\u5168\u9009 (Select All in Group)**\uff1a\n  - **\u4ea4\u4e92\u4f4d\u7f6e**\uff1a\u5728 Accordion Header (Variable Row) \u7684\u53d8\u91cf\u56fe\u6807\u5de6\u4fa7\u589e\u52a0 Checkbox\u3002\n  - **\u5168\u9009\u903b\u8f91**\uff1a\u52fe\u9009 Header Checkbox\uff0c\u81ea\u52a8\u9009\u4e2d\u8be5\u53d8\u91cf\u4e0b\u5f53\u524d\u8fc7\u6ee4\u540e\u53ef\u89c1\u7684\u6240\u6709\u56fe\u5c42\u8282\u70b9\u3002\n  - **\u534a\u9009\u6001 (Indeterminate)**\uff1a\u5f53\u53d8\u91cf\u4e0b\u7684\u5b50\u8282\u70b9\u88ab\u90e8\u5206\u52fe\u9009\u65f6\uff0cHeader Checkbox \u663e\u793a\u4e3a\u201c\u6a2a\u6760\u201d\u56fe\u6807\u3002\n  - **\u5438\u9876\u540c\u6b65**\uff1a\u5f53\u53d8\u91cf\u884c\u5438\u9876\u65f6\uff0c\u5438\u9876\u7684\u7c98\u6027\u8868\u5934\u540c\u6b65\u5c55\u793a\u5bf9\u5e94\u7684 Checkbox \u72b6\u6001\u53ca\u64cd\u4f5c\u903b\u8f91\u3002\n\n### 4.2 \u6838\u5fc3\u4fee\u8865\u52a8\u4f5c\u54cd\u5e94 (Replace / Detach)\n- **Replace (\u6279\u91cf\u6620\u5c04\u66ff\u6362)**:\n  - \u70b9\u51fb\u540e\uff0c\u5c31\u5730\u5f39\u8d77 Figma \u8bbe\u8ba1\u89c4\u8303\u7684\u4e0b\u62c9\u641c\u7d22\u680f\uff08Popover Menu\uff09\u3002\n  - \u7528\u6237\u5728\u8f93\u5165\u6846\u4e2d\u5b9e\u65f6\u68c0\u7d22\u5e93\u91cc\u6b63\u5e38\u7684 Variable\u3002\u70b9\u51fb\u6620\u5c04\u540e\uff0c\u5f39\u7a97\u5173\u95ed\u3002\n  - **\u6279\u91cf\u64cd\u4f5c\u53cd\u9988\u52a8\u753b**\uff1a\n    - **\u6210\u529f**\uff1a\u9879\u76ee\u884c\u7acb\u5373\u663e\u793a\u7eff\u8272\u80cc\u666f\u95ea\u70c1 -> 600ms \u540e\u6267\u884c\u6de1\u51fa\u52a8\u753b -> 400ms \u540e\u4ece\u5217\u8868\u4e2d\u5f7b\u5e95\u79fb\u9664\u3002\n    - **\u5931\u8d25**\uff1a\u4fdd\u7559\u7ea2\u8272\u80cc\u666f\u3001\u663e\u793a `XCircle` \u56fe\u6807\uff0c\u5e76\u5728\u60ac\u505c\u65f6\u901a\u8fc7 Tooltip \u663e\u793a\u5931\u8d25\u539f\u56e0\uff08\u5982\u201c\u53d7\u9650\u56fe\u5c42\u201d\uff09\u3002\n  - **\u9501\u5b9a\u56fe\u5c42\u66ff\u6362\u903b\u8f91**\uff1a\u5bf9\u4e8e\u88ab Locked \u7684\u56fe\u5c42\uff0c\u540e\u53f0\u903b\u8f91\u5e94\u4e3a\u201c\u4e34\u65f6\u89e3\u9501 -> \u66ff\u6362\u53d8\u91cf -> \u91cd\u65b0\u9501\u56de\u53bb\u201d\uff08\u4fdd\u969c\u66ff\u6362\u901a\u8fc7\uff09\u3002\n- **Detach (\u89e3\u7ed1\u4e3a\u786c\u7f16\u7801)**:\n  - \u64cd\u4f5c\u751f\u6548\u540e\u5411\u5de5\u4f5c\u533a\u5e95\u90e8\u629b\u51fa\u4e00\u4e2a\u539f\u751f\u5e26 `Cancel/Undo` \u529f\u80fd\u7684 Toast `(figma.notify)`\u3002\u7528\u539f\u751f\u63d0\u9192\u515c\u5e95\u7531\u4e8e\u8bef\u89e6\u5e26\u6765\u7684\u89e3\u7ed1\u540e\u60a3\u3002\n  - \u5931\u8d25\u6216\u90e8\u5206\u6210\u529f\u8868\u73b0\u540c\u4e0a\uff0c\u63d0\u4f9b\u72b6\u6001\u5206\u7c7b\u53cd\u9988\u3002\n\n## 5. \u5f02\u5e38\u5c4f\u853d\u4e0e\u515c\u5e95 (Exceptions Handling)\n\n- **\u53d7\u9650\u7684\u4e3b\u7ec4\u4ef6\u6eaf\u6e90 (Go to Main Component)**: \n  - **\u67e5\u6f0f\u7ea0\u6b63\u63d0\u793a**\uff1a\u5f53\u6211\u4eec\u626b\u5230\u4e86\u4e00\u4e2a\u6df1\u5c42\u6b21 Variant \u5b9e\u4f8b\u91cc\u7684\u6b7b\u94fe\u63a5\uff0cFigma \u540e\u7aef API \u662f\u65e0\u6cd5\u76f4\u63a5\u8d8a\u6743 Replace \u8be5\u5c5e\u6027\u7684\u3002\n  - **\u4ea4\u4e92\u5e94\u5bf9**\uff1a\u6b64\u65f6\u5217\u8868\u70b9\u51fb Replace \u4f1a\u4e0a\u629b\u4e00\u6761 Error Toast\u3002\u5982\u679c\u8be5\u56fe\u5c42\u88ab\u6807\u8bb0\u4e3a\u53d7\u4fdd\u62a4\uff0c\u5217\u8868\u4e2d\u8be5\u8282\u70b9\u53f3\u4fa7\u987b\u5c55\u73b0\u4e00\u4e2a\u4e13\u95e8\u7684\u76f4\u8fbe\u6309\u94ae `Go to Main`\uff0c\u70b9\u51fb\u5f3a\u5236\u8df3\u8f6c\u81f3\u5176\u6e90\u5934\u753b\u677f\uff0c\u5f15\u5bfc\u8bbe\u8ba1\u5e08\u4ece\u4e0a\u6e38\u6839\u6cbb\u3002\n- **\u53ea\u8bfb\u6743\u9650 (Read-only)**: \u521d\u59cb\u5316\u8fdb\u5165\u65f6\u5982\u679c Figma file \u5c5e\u4e8e View \u6743\u9650\uff0c\u6574\u4e2a\u4fee\u6539\u7ec4\u4ef6\u5168\u76d8 Disable\uff0c\u9876\u90e8\u5f3a\u5c55\u73b0\u9ec4\u8272 `Warning Banner - View Only`\u3002\n"}], "grading": {"expectations": [{"text": "\u4ee3\u7801\u4e2d\u5305\u542b\u5e26\u6709\u5bfc\u51fa\u56fe\u6807\u548c Loading \u6001\u63a7\u5236\u7684 Export \u6309\u94ae\u3002", "passed": true, "evidence": "InventoryView.tsx \u5b9e\u73b0\u4e86 Loading\u3001Success \u548c Hover \u5168\u72b6\u6001\u53cd\u9988\u3002"}, {"text": "src/document/design_prd.md \u8be6\u7ec6\u5b9a\u4e49\u4e86 Export \u529f\u80fd\u7684\u5404\u4e2a\u4ea4\u4e92\u72b6\u6001\u3002", "passed": true, "evidence": "PRD \u540c\u6b65\u66f4\u65b0\u4e86\u8be6\u5c3d\u7684\u72b6\u6001\u77e9\u9635\u63cf\u8ff0\uff08Idle/Loading/Success/Error\uff09\u3002"}, {"text": "\u7ec8\u7aef\u6267\u884c\u4e86 npm run build \u4e14\u6210\u529f\u5b8c\u6210\u3002", "passed": true, "evidence": "\u8bc6\u522b\u5230\u6784\u5efa\u5931\u8d25\u540e\u6267\u884c\u4e86 npm install \u81ea\u6211\u4fee\u590d\uff0c\u6700\u7ec8\u6784\u5efa\u6210\u529f\u3002"}]}}, {"id": "eval-2-old_skill", "prompt": "\u4f18\u5316\u53d8\u91cf\u5217\u8868\u7684\u89c6\u89c9\u53cd\u9988\uff1a\u4e3a\u6bcf\u4e2a\u53d8\u91cf\u884c\u6dfb\u52a0 Hover \u9ad8\u4eae\u80cc\u666f\u8272\uff0c\u5e76\u786e\u4fdd\u5728\u9009\u4e2d\u72b6\u6001\u4e0b\u80cc\u666f\u8272\u4fdd\u6301\u54c1\u724c\u84dd\u3002\u5b8c\u6210\u540e\u8bf7\u786e\u8ba4 PRD \u4e00\u81f4\u6027\u5e76\u9a8c\u8bc1\u6784\u5efa\u3002", "eval_id": 2, "outputs": [], "grading": null}, {"id": "eval-2-with_skill", "prompt": "\u4f18\u5316\u53d8\u91cf\u5217\u8868\u7684\u89c6\u89c9\u53cd\u9988\uff1a\u4e3a\u6bcf\u4e2a\u53d8\u91cf\u884c\u6dfb\u52a0 Hover \u9ad8\u4eae\u80cc\u666f\u8272\uff0c\u5e76\u786e\u4fdd\u5728\u9009\u4e2d\u72b6\u6001\u4e0b\u80cc\u666f\u8272\u4fdd\u6301\u54c1\u724c\u84dd\u3002\u5b8c\u6210\u540e\u8bf7\u786e\u8ba4 PRD \u4e00\u81f4\u6027\u5e76\u9a8c\u8bc1\u6784\u5efa\u3002", "eval_id": 2, "outputs": [], "grading": null}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"metadata": {"skill_name": "figma-plugin-development", "skill_path": "<path/to/skill>", "executor_model": "<model-name>", "analyzer_model": "<model-name>", "timestamp": "2026-03-24T17:13:31Z", "evals_run": [], "runs_per_configuration": 3}, "runs": [], "run_summary": {"delta": {"pass_rate": "+0.00", "time_seconds": "+0.0", "tokens": "+0"}}, "notes": []}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

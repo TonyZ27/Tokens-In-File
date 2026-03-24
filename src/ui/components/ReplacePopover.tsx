@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { TokenValueDisplay, VariableTypeIcon } from './TokenValue';
 
 export interface AvailableVariable {
   id: string;
   name: string;
   collectionName: string;
   resolvedType: string;
+  value?: any;
 }
 
 interface ReplacePopoverProps {
@@ -15,9 +17,17 @@ interface ReplacePopoverProps {
   variables: AvailableVariable[];
   onSelect: (variable: AvailableVariable) => void;
   onClose: () => void;
+  position?: 'top' | 'bottom';
 }
 
-export function ReplacePopover({ isOpen, isLoading, variables, onSelect, onClose }: ReplacePopoverProps) {
+export function ReplacePopover({ 
+  isOpen, 
+  isLoading, 
+  variables, 
+  onSelect, 
+  onClose,
+  position = 'top'
+}: ReplacePopoverProps) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,10 +76,15 @@ export function ReplacePopover({ isOpen, isLoading, variables, onSelect, onClose
       {/* Full-screen dimmer */}
       <div className="fixed inset-0 z-[30] bg-black/20" aria-hidden="true" />
 
-      {/* Popover Panel – positioned above the bottom bar */}
+      {/* Popover Panel */}
       <div
         ref={containerRef}
-        className="absolute bottom-full left-0 right-0 z-[40] mb-1 mx-2 rounded-lg border border-[var(--figma-color-border)] bg-[var(--figma-color-bg)] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] overflow-hidden"
+        className={cn(
+          "absolute left-0 right-0 z-[40] mx-2 rounded-lg border border-[var(--figma-color-border)] bg-[var(--figma-color-bg)] overflow-hidden",
+          position === 'top' 
+            ? "bottom-full mb-1 shadow-[0_-4px_20px_rgba(0,0,0,0.15)]" 
+            : "top-full mt-1 shadow-[0_4px_20px_rgba(0,0,0,0.15)]"
+        )}
         style={{ maxHeight: 240 }}
       >
         {/* Search Input */}
@@ -103,15 +118,21 @@ export function ReplacePopover({ isOpen, isLoading, variables, onSelect, onClose
               <button
                 key={v.id}
                 className={cn(
-                  "w-full text-left px-3 py-1.5 flex items-center justify-between gap-2 hover:bg-[var(--figma-color-bg-hover)] transition-colors"
+                  "w-full text-left px-3 py-1.5 flex items-center justify-between gap-3 hover:bg-[var(--figma-color-bg-hover)] transition-colors group"
                 )}
                 onClick={() => {
                   onSelect(v);
                   onClose();
                 }}
               >
-                <span className="text-[11px] font-medium truncate">{v.name}</span>
-                <span className="text-[10px] text-[var(--figma-color-text-tertiary)] shrink-0 truncate max-w-[90px]">
+                <div className="flex items-center gap-2 overflow-hidden flex-1">
+                  <div className="flex items-center gap-1.5 overflow-hidden">
+                    <TokenValueDisplay vType={v.resolvedType} value={v.value} />
+                    <VariableTypeIcon vType={v.resolvedType} />
+                    <span className="text-[11px] font-medium truncate">{v.name}</span>
+                  </div>
+                </div>
+                <span className="text-[10px] text-[var(--figma-color-text-tertiary)] shrink-0 truncate max-w-[80px]">
                   {v.collectionName}
                 </span>
               </button>

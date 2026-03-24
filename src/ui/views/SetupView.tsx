@@ -29,7 +29,7 @@ const ToggleChip = ({ label, checked, onChange, disabled }: { label: React.React
 );
 
 export function SetupView({ initialConfig, onScan, isScanning, onCancel }: SetupViewProps) {
-  const [scope, setScope] = useState(initialConfig?.scope || 'page');
+  const [scope, setScope] = useState(initialConfig?.scope || 'selection');
   const [types, setTypes] = useState(initialConfig?.types || { variables: true, styles: true });
   const [sources, setSources] = useState(initialConfig?.sources || { local: true, linked: true, unlinked: true, missing: true });
   const [layerTypes, setLayerTypes] = useState(initialConfig?.layerTypes || { component: true, instance: true, text: true, shape: true, frame: true });
@@ -63,9 +63,9 @@ export function SetupView({ initialConfig, onScan, isScanning, onCancel }: Setup
             onChange={e => setScope(e.target.value)}
             disabled={isScanning}
           >
-            <option value="file">Entire File</option>
-            <option value="page">Current Page</option>
             <option value="selection">Current Selection</option>
+            <option value="page">Current Page</option>
+            <option value="file">Entire File</option>
           </Select>
         </section>
 
@@ -100,7 +100,7 @@ export function SetupView({ initialConfig, onScan, isScanning, onCancel }: Setup
               {allSourcesChecked ? 'Deselect All' : 'Select All'}
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <ToggleChip label="Local" checked={sources.local} onChange={c => setSources({ ...sources, local: c })} disabled={isScanning} />
             <ToggleChip label="Linked" checked={sources.linked} onChange={c => setSources({ ...sources, linked: c })} disabled={isScanning} />
             <ToggleChip label="Hardcode" checked={sources.unlinked} onChange={c => setSources({ ...sources, unlinked: c })} disabled={isScanning} />
