@@ -20,16 +20,24 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 // @ts-nocheck
-figma.showUI(__html__, { width: 360, height: 480, themeColors: true });
+figma.showUI(__html__, { width: 400, height: 480, themeColors: true });
 let isScanning = false;
+let isInternalSelectionChange = false;
 // 数据缓存池，防止多次 await 相同的底层变量耗散性能
 const cacheVariables = new Map();
 const cacheCollections = new Map();
 // 简单的 yield 机制，让出主线程给 Figma UI
 const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
 figma.on('selectionchange', () => {
-    if (!isScanning)
-        figma.ui.postMessage({ type: 'selectionchange' });
+    if (isScanning)
+        return;
+    if (isInternalSelectionChange) {
+        figma.ui.postMessage({ type: 'selectionchange', source: 'plugin-internal' });
+        isInternalSelectionChange = false;
+    }
+    else {
+        figma.ui.postMessage({ type: 'selectionchange', source: 'user-canvas' });
+    }
 });
 figma.on('currentpagechange', () => {
     if (!isScanning)
@@ -481,7 +489,12 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
                 if (parentPage && figma.currentPage.id !== parentPage.id) {
                     figma.currentPage = parentPage;
                 }
-                figma.currentPage.selection = [sceneNode];
+                // 检查是否真的需要改变选中，避免不必要的事件触发
+                const currentSelectionIds = figma.currentPage.selection.map(s => s.id);
+                if (currentSelectionIds.length !== 1 || currentSelectionIds[0] !== sceneNode.id) {
+                    isInternalSelectionChange = true;
+                    figma.currentPage.selection = [sceneNode];
+                }
                 figma.viewport.scrollAndZoomIntoView([sceneNode]);
             }
             else if (!node || !belongsToCurrentFile(node)) {

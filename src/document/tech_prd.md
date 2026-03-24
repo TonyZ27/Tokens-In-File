@@ -33,6 +33,7 @@
   - 点击列表图层项可立刻在 Figma 画布居中放大该节点对象（Zoom/Pan）。
   - 针对只读状态和被锁（Locked）的节点做视觉置灰禁用处理。
   - 勾选多项后可执行 `批量替换 (Replace)` 或弱视觉展示的 `样式解绑 (Detach)`。
+- **无干扰审计定位 (Status Locking)**：点击列表项进行 Zoom 定位时，插件需能识别此操作为内部触发，从而在 `Selection` 模式下自动跳过针对该事件的列表刷新，确保审计上下文不丢失。
 
 ### 2.4 Non-Goals (明确不做范围)
 - Style 的审计与操作中，当前阶段 **仅支持 Typography（文本样式）**，暂不处理 EffectStyles / GridStyles 相关的审查与排错逻辑。
@@ -46,7 +47,7 @@
 - **核心技术栈**：采用 **React + TypeScript**，保证后期工程的组件化可维护性与类型安全。界面生态完全遵照 Figma 官方 UI 设计系统标准（Noto Sans，极简暗浅色调支持）。
 - **生命周期线程隔离**：
   - **Main Thread (核心控制器)**：挂载于 Figma 内存插件沙箱。负责在后台通过 DFS/BFS 深度遍历 `figma.currentPage.findAll()`，快速提炼 Node 上的 `boundVariables` 及文字属性。**每次扫描前必须显式调用 `cacheVariables.clear()` 和 `cacheCollections.clear()` 以防止跨文件缓存污染。**
-  - **UI Thread (展示界面)**：利用 React Hook 及 Context 管理繁杂的面板数据状态。**静默同步监听**：通过捕获 `figma.on('selectionchange')` 和 `figma.on('currentpagechange')` 事件，在 Scope 为 `Selection` 或 `Page` 时自动触发后台静默重扫，保持数据鲜活度。
+  - **UI Thread (展示界面)**：利用 React Hook 及 Context 管理繁杂的面板数据状态。**静默同步监听与状态锁定**：通过捕获 `figma.on('selectionchange')` 和 `figma.on('currentpagechange')` 事件进行自动重扫。**冲突处理机制**：通过传递 `source` 载荷区分“用户手动点选”与“插件内部定位”，从而在执行图层定位时保持列表数据的稳定性，实现“审计状态锁定”。
 
 ### 3.2 Integration Points (集成点)
 - **Figma API 集成**：强依赖 `figma.variables`（解析与反查询变量信息）、`figma.viewport.scrollAndZoomIntoView()` 以及 `figma.notify()` 反馈机制。

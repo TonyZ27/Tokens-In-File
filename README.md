@@ -7,7 +7,7 @@
 
 ## 📖 Overview
 
-**Tokens in Page** was born out of the need to manage large-scale Design Systems (like the one we use at Volvo). As files grow, keeping track of Local, Linked, and Missing variables becomes a nightmare. This plugin provides a high-performance, structured way to audit your design assets and fix "design debt" in seconds.
+**Tokens in Page** was born out of the need to manage large-scale Design Systems. As files grow, keeping track of Local, Linked, and Missing variables becomes a nightmare. This plugin provides a high-performance, structured way to audit your design assets and fix "design debt" in seconds.
 
 Built with a **UX-first approach**, it focuses on helping Design System Leads and UX Engineers maintain a single source of truth.
 

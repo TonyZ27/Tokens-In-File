@@ -35,7 +35,11 @@ export default function App() {
       } else if (msg.type === 'scan-cancelled') {
         setIsScanning(false);
       } else if (msg.type === 'selectionchange') {
-        if (viewRef.current === 'inventory' && lastConfigRef.current?.scope === 'selection') {
+        if (
+          viewRef.current === 'inventory' && 
+          lastConfigRef.current?.scope === 'selection' &&
+          msg.source === 'user-canvas'
+        ) {
           handleScan(lastConfigRef.current);
         }
       } else if (msg.type === 'currentpagechange') {

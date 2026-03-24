@@ -46,7 +46,7 @@ type NodeStatus = 'idle' | 'pending' | 'success' | 'error';
 // Flat list types for Virtuoso rendering
 type ListItem =
   | { type: 'groupHeader'; name: string; isCollapsed: boolean }
-  | { type: 'variableRow'; id: string; name: string; count: number; isExpanded: boolean; variableType: string; value?: any }
+  | { type: 'variableRow'; id: string; name: string; count: number; isExpanded: boolean; variableType: string; value?: any; isChecked: boolean; isIndeterminate: boolean }
   | { type: 'frameHeader'; name: string }
   | { type: 'nodeRow'; node: TokenNode; isChecked: boolean };
 
@@ -85,39 +85,43 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
 
         const newStatus = new Map(nodeStatus);
         const newErrors = new Map(nodeErrors);
-        const successIds: string[] = [];
+        const successKeys: string[] = [];
 
         results.forEach(r => {
-          if (r.success) {
-            newStatus.set(r.id, 'success');
-            successIds.push(r.id);
-          } else {
-            newStatus.set(r.id, 'error');
-            newErrors.set(r.id, r.reason ?? '操作失败');
-          }
+          Array.from(newStatus.keys()).forEach(key => {
+            if (key.startsWith(r.id + '::')) {
+              if (r.success) {
+                newStatus.set(key, 'success');
+                successKeys.push(key);
+              } else {
+                newStatus.set(key, 'error');
+                newErrors.set(key, r.reason ?? '操作失败');
+              }
+            }
+          });
         });
 
         setNodeStatus(newStatus);
         setNodeErrors(newErrors);
 
         // Fade-out success items after 600ms, then remove from list
-        if (successIds.length > 0) {
+        if (successKeys.length > 0) {
           setTimeout(() => {
-            setFadingIds(prev => new Set([...prev, ...successIds]));
+            setFadingIds(prev => new Set([...prev, ...successKeys]));
             setTimeout(() => {
               setSelectedNodeIds(prev => {
                 const next = new Set(prev);
-                successIds.forEach(id => next.delete(id));
+                successKeys.forEach(k => next.delete(k));
                 return next;
               });
               setNodeStatus(prev => {
                 const next = new Map(prev);
-                successIds.forEach(id => next.delete(id));
+                successKeys.forEach(k => next.delete(k));
                 return next;
               });
               setFadingIds(prev => {
                 const next = new Set(prev);
-                successIds.forEach(id => next.delete(id));
+                successKeys.forEach(k => next.delete(k));
                 return next;
               });
             }, 400);
@@ -237,20 +241,28 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
         const sortedVars = Array.from(varsMap.keys()).sort();
         sortedVars.forEach(varName => {
           const vNodes = varsMap.get(varName)!;
-          const isExpanded = expandedVars.has(varName);
+          const uniqueVarId = `${groupName}:${varName}`;
+          const isVarExpanded = expandedVars.has(uniqueVarId);
+
+          // Calculate selection state for the variable group
+          const selectedInGroup = vNodes.filter(n => selectedNodeIds.has(`${n.id}::${varName}::${groupName}`)).length;
+          const isChecked = selectedInGroup === vNodes.length && vNodes.length > 0;
+          const isIndeterminate = selectedInGroup > 0 && selectedInGroup < vNodes.length;
 
             items.push({
               type: 'variableRow',
-              id: varName,
+              id: uniqueVarId,
               name: varName,
               count: vNodes.length,
-              isExpanded,
+              isExpanded: isVarExpanded,
               variableType: vNodes[0].variableType || 'UNKNOWN',
               value: vNodes[0].value,
+              isChecked,
+              isIndeterminate,
             });
           currentGroupItemCount++;
 
-          if (isExpanded) {
+          if (isVarExpanded) {
             const framesMap = new Map<string, TokenNode[]>();
             vNodes.forEach(n => {
               const f = `${n.pageName || 'Unknown Page'} / ${n.frameName || 'Canvas'}`;
@@ -268,7 +280,7 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
                 items.push({
                   type: 'nodeRow',
                   node: n,
-                  isChecked: selectedNodeIds.has(n.id),
+                  isChecked: selectedNodeIds.has(`${n.id}::${varName}::${groupName}`),
                 });
                 currentGroupItemCount++;
               });
@@ -315,11 +327,29 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
     });
   };
 
-  const toggleNodeSelection = (id: string, checked: boolean) => {
+  const toggleVariableSelection = (uniqueId: string, checked: boolean) => {
+    const colonIndex = uniqueId.indexOf(':');
+    const groupName = uniqueId.slice(0, colonIndex);
+    const varName = uniqueId.slice(colonIndex + 1);
+    
+    const varNodes = filteredNodes.filter(n => n.groupName === groupName && n.variableName === varName);
+    const varNodeSelectionKeys = varNodes.map(n => `${n.id}::${varName}::${groupName}`);
     setSelectedNodeIds(prev => {
       const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
+      if (checked) {
+        varNodeSelectionKeys.forEach(k => next.add(k));
+      } else {
+        varNodeSelectionKeys.forEach(k => next.delete(k));
+      }
+      return next;
+    });
+  };
+
+  const toggleNodeSelection = (compositeKey: string, checked: boolean) => {
+    setSelectedNodeIds(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(compositeKey);
+      else next.delete(compositeKey);
       return next;
     });
   };
@@ -339,15 +369,16 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
 
   const handleVariableSelected = useCallback((variable: AvailableVariable) => {
     // Mark selected nodes as pending
-    const ids = Array.from(selectedNodeIds);
+    const keys = Array.from(selectedNodeIds);
     const newStatus = new Map(nodeStatus);
-    ids.forEach(id => newStatus.set(id, 'pending'));
+    keys.forEach(k => newStatus.set(k, 'pending'));
     setNodeStatus(newStatus);
 
-    // Collect bound property keys per node
-    const nodePayloads = ids.map(id => {
-      const node = nodes.find(n => n.id === id);
-      return { id, boundPropertyKeys: node?.boundPropertyKeys ?? [] };
+    // Deduplicate node payload
+    const uniqueNodeIds = Array.from(new Set(keys.map(k => k.split('::')[0])));
+    const nodePayloads = uniqueNodeIds.map(nodeId => {
+      const node = nodes.find(n => n.id === nodeId);
+      return { id: nodeId, boundPropertyKeys: node?.boundPropertyKeys ?? [] };
     });
 
     parent.postMessage({
@@ -362,14 +393,15 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
   }, [selectedNodeIds, nodeStatus, nodes]);
 
   const handleDetach = useCallback(() => {
-    const ids = Array.from(selectedNodeIds);
+    const keys = Array.from(selectedNodeIds);
     const newStatus = new Map(nodeStatus);
-    ids.forEach(id => newStatus.set(id, 'pending'));
+    keys.forEach(k => newStatus.set(k, 'pending'));
     setNodeStatus(newStatus);
 
-    const nodePayloads = ids.map(id => {
-      const node = nodes.find(n => n.id === id);
-      return { id, boundPropertyKeys: node?.boundPropertyKeys ?? [] };
+    const uniqueNodeIds = Array.from(new Set(keys.map(k => k.split('::')[0])));
+    const nodePayloads = uniqueNodeIds.map(nodeId => {
+      const node = nodes.find(n => n.id === nodeId);
+      return { id: nodeId, boundPropertyKeys: node?.boundPropertyKeys ?? [] };
     });
 
     parent.postMessage({
@@ -503,20 +535,20 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
                     key={c}
                     onClick={() => setSelectedKey(itemKey)}
                     className={cn(
-                      "text-[10px] text-left font-medium px-2 py-1.5 rounded truncate transition-colors flex items-center justify-between group",
+                      "text-[10px] text-left font-medium px-2 py-1.5 rounded truncate transition-all duration-150 flex items-center justify-between group",
                       isSelected
-                        ? "bg-[#0d99ff] text-white"
+                        ? "bg-[#0d99ff] text-white shadow-sm hover:bg-[#0084e5]"
                         : isMissing
-                        ? "text-[#f24822] hover:bg-[#f24822]/10"
+                        ? "text-[#f24822] hover:bg-[#f24822]/10 hover:text-[#f24822]"
                         : isHardcoded || isUnlinked
-                        ? "text-[var(--figma-color-text-tertiary)] hover:bg-[var(--figma-color-bg-hover)] italic"
-                        : "text-[var(--figma-color-text-secondary)] hover:bg-[var(--figma-color-bg-hover)]"
+                        ? "text-[var(--figma-color-text-tertiary)] hover:bg-[var(--figma-color-bg-hover)] hover:text-[var(--figma-color-text)] italic"
+                        : "text-[var(--figma-color-text-secondary)] hover:bg-[var(--figma-color-bg-hover)] hover:text-[var(--figma-color-text)]"
                     )}
                     title={c}
                   >
                     <span className="truncate">{c}</span>
-                    {isMissing && <CircleHelp className={cn("w-3 h-3 shrink-0 opacity-80", isSelected ? "text-white" : "text-[#f24822]")} />}
-                    {isHardcoded && <Unlink className={cn("w-3 h-3 shrink-0 opacity-80", isSelected ? "text-white" : "text-[var(--figma-color-text-tertiary)]")} />}
+                    {isMissing && <CircleHelp className={cn("w-3 h-3 shrink-0 transition-opacity", isSelected ? "text-white opacity-100" : "text-[#f24822] opacity-80 group-hover:opacity-100")} />}
+                    {isHardcoded && <Unlink className={cn("w-3 h-3 shrink-0 transition-opacity", isSelected ? "text-white opacity-100" : "text-[var(--figma-color-text-tertiary)] opacity-80 group-hover:opacity-100")} />}
                   </button>
                 );
               })}
@@ -563,6 +595,15 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
                       onClick={() => toggleVariableExpanded(item.id)}
                     >
                       <div className="flex items-center gap-2 overflow-hidden flex-1">
+                        <div onClick={e => e.stopPropagation()} className="shrink-0">
+                          <Checkbox
+                            label=""
+                            checked={item.isChecked}
+                            indeterminate={item.isIndeterminate}
+                            onChange={e => toggleVariableSelection(item.id, e.target.checked)}
+                          />
+                        </div>
+
                         {item.isExpanded
                           ? <ChevronDown className="w-3.5 h-3.5 opacity-50 shrink-0" />
                           : <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />}
@@ -594,9 +635,10 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
                 if (item.type === 'nodeRow') {
                   const n = item.node;
                   const isChecked = item.isChecked;
-                  const status = nodeStatus.get(n.id) ?? 'idle';
-                  const errMsg = nodeErrors.get(n.id);
-                  const isFading = fadingIds.has(n.id);
+                  const compositeKey = `${n.id}::${n.variableName}::${n.groupName}`;
+                  const status = nodeStatus.get(compositeKey) ?? 'idle';
+                  const errMsg = nodeErrors.get(compositeKey);
+                  const isFading = fadingIds.has(compositeKey);
 
                   return (
                     <div
@@ -616,7 +658,7 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
                         <Checkbox
                           label=""
                           checked={isChecked}
-                          onChange={e => toggleNodeSelection(n.id, e.target.checked)}
+                          onChange={e => toggleNodeSelection(compositeKey, e.target.checked)}
                           disabled={status === 'pending'}
                         />
                       </div>
@@ -673,6 +715,14 @@ export function InventoryView({ onBack, onRefresh, isRefreshing, nodes }: Invent
                 onClick={() => toggleVariableExpanded(activeOverlayVariable.id)}
               >
                 <div className="flex items-center gap-2 overflow-hidden flex-1">
+                  <div onClick={e => e.stopPropagation()} className="shrink-0">
+                    <Checkbox
+                      label=""
+                      checked={activeOverlayVariable.isChecked}
+                      indeterminate={activeOverlayVariable.isIndeterminate}
+                      onChange={e => toggleVariableSelection(activeOverlayVariable.id, e.target.checked)}
+                    />
+                  </div>
                   <ChevronDown className="w-3.5 h-3.5 opacity-50 shrink-0" />
                   <div className="flex items-center gap-1.5 overflow-hidden">
                     <TokenValueDisplay vType={activeOverlayVariable.variableType} value={activeOverlayVariable.value} />

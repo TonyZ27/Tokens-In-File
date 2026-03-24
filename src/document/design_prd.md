@@ -3,7 +3,7 @@
 > 旨在为研发和测试补充视觉验收标准与交互边界（状态、异常流转、鼠标/键盘行为）。本文档紧密贴合您已有的 Figma 设计原型，并针对此前 PRD 中确立的“清理 Unlinked”、“Main Component 溯源”等进阶审查目标进行了交互逻辑补全。
 
 ## 1. 全局视口及框架规范
-- **默认视口 (Viewport)**: `Width 360px`, `Height 480px` (建议开启拖拽 Resizing 权限，受限于列表长数据的包容性，最小高度限定在 `300px`，最大宽/高不设限以便提供更好的列表呈现)。
+- **默认视口 (Viewport)**: `Width 400px`, `Height 480px` (建议开启拖拽 Resizing 权限，受限于列表长数据的包容性，最小高度限定在 `300px`，最大宽/高不设限以便提供更好的列表呈现)。
 - **深色模式 (Dark Mode)**: 插件全系使用 CSS 原生媒体查询直接跟随宿主 Figma UI 的亮暗色偏好，不提供内部手动切换开关以保持原生沉浸感。
 
 ## 2. 核心页面流转 (Page Workflows)
@@ -33,7 +33,7 @@
 - **全局操作区 (Global Actions)**：
   - **刷新机制与动态监听**：
     - 列表顶部提供带 `Spin` 转圈动效反馈的 `🔄 Refresh` 按钮。
-    - **钩子静默联动**：只要当前 Scope 为 `Selection` 或 `Current Page`，当 Figma 抛出对应的 `selectionchange` 或 `currentpagechange` 事件时，插件隐式触发一次后台级刷新以保持数据鲜活度。
+    - **钩子静默联动与状态锁定**：只要当前 Scope 为 `Selection` 或 `Current Page`，当 Figma 抛出对应的 `selectionchange` 或 `currentpagechange` 事件时，插件隐式触发一次后台级刷新以保持数据鲜活度。**交互冲突过滤**：系统必须能识别由插件发起的 `zoom-to-node` 定位操作，并在此时**锁定列表状态**，避免因选中项变更而触发非预期的列表重载，确保用户的审计流不被中断。
   - **变量搜索**：提供一个搜索框（Search Variables by Keyword），允许按名称实时检索与过滤当前列表内的变量。
 - **多层级导航布局**：
   - **左侧边栏 (Sidebar)**：展示 Figma Variables/Styles 的 **Collections** 结构。**侧栏宽度固定为 `120px`**，以容纳较长的集合名称，防止文字截断。
@@ -71,9 +71,14 @@
 
 ## 4. 批量排错区 (Batch Actions)
 
-### 4.1 动作触发层可见性
-- 动作按钮（Replace 和 Detach）只有在列表中**至少由 Checkbox 勾选了 `>= 1` 个图层节点**时才会激活。
-- 未勾选任何项目时，这部分 UI（无论是采取 Bottom FAB 还是 Top Action Bar 布局）应保持禁用（Opacity 50%）以防误触。
+### 4.1 动作触发层可见性与组内全选 (Group Selection)
+- **动作按钮激活条件**：动作按钮（Replace 和 Detach）只有在列表中**至少由 Checkbox 勾选了 `>= 1` 个图层节点**时才会激活。
+- **未勾选态**：未勾选任何项目时，这部分 UI 应保持禁用（Opacity 50%）以防误触。
+- **Variable 层级全选 (Select All in Group)**：
+  - **交互位置**：在 Accordion Header (Variable Row) 的变量图标左侧增加 Checkbox。
+  - **全选逻辑**：勾选 Header Checkbox，自动选中该变量下当前过滤后可见的所有图层节点。
+  - **半选态 (Indeterminate)**：当变量下的子节点被部分勾选时，Header Checkbox 显示为“横杠”图标。
+  - **吸顶同步**：当变量行吸顶时，吸顶的粘性表头同步展示对应的 Checkbox 状态及操作逻辑。
 
 ### 4.2 核心修补动作响应 (Replace / Detach)
 - **Replace (批量映射替换)**:
